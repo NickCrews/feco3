@@ -1,0 +1,24 @@
+[build-system]
+requires = ["maturin>=0.15,<0.16"]
+build-backend = "maturin"
+
+[project]
+name = "feco3"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+[tool.maturin]
+module-name = "_feco3"
+manifest-path = "crates/feco3_python/Cargo.toml"
+python-packages = ["feco3", "_feco3"]
+python-source = "python"
+features = ["pyo3/extension-module"]
+strip = true
+# exclude = [
+#   "crates/ruff/resources/test/fixtures/**/*",
+#   "crates/ruff/src/rules/*/snapshots/**/*"
+# ]

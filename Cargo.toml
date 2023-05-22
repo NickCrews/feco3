@@ -1,0 +1,10 @@
+[workspace]
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.69"
+# homepage = "https://beta.ruff.rs/docs/"
+# documentation = "https://beta.ruff.rs/docs/"
+# repository = "https://github.com/charliermarsh/ruff"
+# authors = ["Charlie Marsh <charlie.r.marsh@gmail.com>"]
