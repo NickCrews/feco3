@@ -10,7 +10,7 @@ pub enum Value {
 }
 
 /// Similar to Value, but just store the type of the value, not the value itself.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ValueType {
     String,
     Integer,
@@ -19,6 +19,7 @@ pub enum ValueType {
     Boolean,
 }
 
+#[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
     pub value: Value,
@@ -32,6 +33,7 @@ pub struct FieldSchema {
     pub typ: ValueType,
 }
 
+#[derive(Debug, Clone)]
 pub struct FormLine {
     pub fields: Vec<Field>,
 }
