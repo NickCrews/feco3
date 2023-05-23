@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    io::{BufRead, Lines},
+    io::{BufRead, BufReader, Lines, Read},
 };
 
 #[derive(Debug, Default, Clone)]
@@ -26,13 +26,14 @@ impl std::error::Error for HeaderParseError {}
 type Result<T> = std::result::Result<T, HeaderParseError>;
 
 // Create a Header given Lines
-pub fn parse_header(lines: &mut Lines<impl BufRead>) -> Result<Header> {
+pub fn parse_header(lines: &mut impl Read) -> Result<Header> {
+    let mut lines = BufReader::new(lines).lines();
     let mut header = Header::default();
     let mut read_lines = Vec::new();
-    next_line(&mut read_lines, lines)?;
-    header.version = next_line(&mut read_lines, lines)?;
-    header.software_name = next_line(&mut read_lines, lines)?;
-    header.software_version = next_line(&mut read_lines, lines)?;
+    next_line(&mut read_lines, &mut lines)?;
+    header.version = next_line(&mut read_lines, &mut lines)?;
+    header.software_name = next_line(&mut read_lines, &mut lines)?;
+    header.software_version = next_line(&mut read_lines, &mut lines)?;
     Ok(header)
 }
 

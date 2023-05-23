@@ -1,25 +1,115 @@
-use std::io::{BufRead, BufReader, Lines, Read};
+use std::io::Read;
+use std::mem::take;
 
+use crate::form::{lookup_schema, FieldSchema, FormLine};
 use crate::header::{parse_header, Header, HeaderParseError};
+// use csv::Reader;
+use csv::ReaderBuilder;
 
-#[derive(Debug)]
-pub struct Parser<R> {
-    lines: Lines<BufReader<R>>,
+pub struct Parser<R: Read> {
     /// If parsed yet, contains the header
-    header: Option<Header>,
+    pub header: Option<Header>,
+    /// The source of raw bytes
+    reader: Option<R>,
+    /// After reading the header, this contains the CSV reader
+    /// that will be used to read the rest of the file.
+    row_parser: Option<RowsParser<R>>,
 }
 
 impl<R: Read> Parser<R> {
     pub fn from_reader(reader: R) -> Self {
         Self {
-            lines: BufReader::new(reader).lines(),
+            reader: Some(reader),
             header: None,
+            row_parser: None,
         }
     }
 
-    pub fn parse_header(&mut self) -> Result<Header, HeaderParseError> {
-        let header = parse_header(&mut self.lines)?;
-        self.header = Some(header.clone());
-        Ok(header)
+    pub fn parse_header(&mut self) -> Result<&Header, HeaderParseError> {
+        if self.reader.is_none() {
+            panic!("No reader")
+        }
+        let header = parse_header(self.reader.as_mut().unwrap())?;
+        self.header = Some(header);
+        let result = self.header.as_ref().unwrap();
+        Ok(result)
     }
+
+    pub fn next_line(&mut self) -> Result<Option<Result<FormLine, String>>, String> {
+        if self.row_parser.is_none() {
+            let reader = take(&mut self.reader).ok_or("No reader")?;
+            self.row_parser = Some(RowsParser::new(reader, false));
+        }
+        let rp = self.row_parser.as_mut().ok_or("No row parser")?;
+        let line = rp.next_line();
+        Ok(line)
+    }
+}
+
+struct RowsParser<R: Read> {
+    records: csv::ByteRecordsIntoIter<R>,
+}
+
+impl<R: Read> RowsParser<R> {
+    fn new(src: R, use_ascii28: bool) -> Self {
+        let delim = if use_ascii28 { b'\x1c' } else { b',' };
+        let reader = ReaderBuilder::new()
+            .delimiter(delim)
+            .has_headers(false)
+            .flexible(true)
+            .from_reader(src);
+        Self {
+            records: reader.into_byte_records(),
+        }
+    }
+
+    fn next_line(&mut self) -> Option<Result<FormLine, String>> {
+        let record_or_error = self.records.next()?.map_err(|e| e.to_string());
+        let record = match record_or_error {
+            Ok(record) => record,
+            Err(e) => return Some(Err(e)),
+        };
+        Some(Self::parse_csv_record(record))
+    }
+
+    fn parse_csv_record(record: csv::ByteRecord) -> Result<FormLine, String> {
+        let mut record_fields = record.iter();
+        let form_name = match record_fields.next() {
+            Some(form_name) => form_name,
+            None => return Err("No form name".to_string()),
+        };
+        let schema = lookup_schema(form_name);
+        let mut fields = Vec::new();
+        for (field_schema, raw_value) in schema.fields.iter().zip(record_fields) {
+            fields.push(parse_raw_field_val(raw_value, field_schema)?);
+        }
+        Ok(FormLine { fields })
+    }
+}
+
+fn parse_raw_field_val(
+    raw_value: &[u8],
+    field_schema: &FieldSchema,
+) -> Result<crate::form::Field, String> {
+    let s = String::from_utf8_lossy(raw_value).to_string();
+    let parsed_val = match field_schema.typ {
+        crate::form::ValueType::String => crate::form::Value::String(s),
+        crate::form::ValueType::Integer => {
+            let i = s.parse::<i64>().map_err(|e| e.to_string())?;
+            crate::form::Value::Integer(i)
+        }
+        crate::form::ValueType::Float => {
+            let f = s.parse::<f64>().map_err(|e| e.to_string())?;
+            crate::form::Value::Float(f)
+        }
+        crate::form::ValueType::Date => crate::form::Value::Date(s),
+        crate::form::ValueType::Boolean => {
+            let b = s.parse::<bool>().map_err(|e| e.to_string())?;
+            crate::form::Value::Boolean(b)
+        }
+    };
+    Ok(crate::form::Field {
+        name: field_schema.name.clone(),
+        value: parsed_val,
+    })
 }
