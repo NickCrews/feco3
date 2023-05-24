@@ -7,10 +7,6 @@ pub mod header;
 pub mod parser;
 pub mod writers;
 
-pub fn add_42(a: i32) -> i32 {
-    a + 42
-}
-
 pub fn print_header(path: &str) {
     // TODO Figure out how to reconfigure this, since currently
     // it only configures it on the first call and then never again.
