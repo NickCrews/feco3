@@ -10,7 +10,10 @@ pub struct CSVFormWriter<W: std::io::Write> {
 
 impl<W: std::io::Write> CSVFormWriter<W> {
     pub fn new(raw_writer: W, schema: &FormSchema) -> Self {
-        let writer = csv::Writer::from_writer(raw_writer);
+        let writer = csv::WriterBuilder::new()
+            .has_headers(false) // We'll write the header ourselves
+            .flexible(true)
+            .from_writer(raw_writer);
         Self {
             csv_writer: writer,
             schema: schema.clone(),
