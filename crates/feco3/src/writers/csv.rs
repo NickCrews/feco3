@@ -21,7 +21,12 @@ impl<W: std::io::Write> CSVFormWriter<W> {
         }
     }
 
-    fn write_header(&mut self) -> std::io::Result<()> {
+    /// Write the header if it hasn't been written yet.
+    fn maybe_write_header(&mut self) -> std::io::Result<()> {
+        if self.has_written_header {
+            return Ok(());
+        }
+        self.has_written_header = true;
         let fields = &self.schema.fields;
         let field_names = fields.iter().map(|f| f.name.as_str());
         self.csv_writer.write_record(field_names)?;
@@ -31,10 +36,7 @@ impl<W: std::io::Write> CSVFormWriter<W> {
 
 impl<W: std::io::Write> FormWriter for CSVFormWriter<W> {
     fn write_line(&mut self, line: &FormLine) -> std::io::Result<()> {
-        if !self.has_written_header {
-            self.write_header()?;
-            self.has_written_header = true;
-        }
+        self.maybe_write_header()?;
         let string_values = line
             .fields
             .iter()
