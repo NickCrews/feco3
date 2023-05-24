@@ -9,4 +9,4 @@ name = "feco3"
 
 [dependencies]
 csv = "1.2"
-chrono = "0.4"
+bytelines = "2.4"

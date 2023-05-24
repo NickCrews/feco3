@@ -2,13 +2,13 @@ use std::io::Read;
 use std::mem::take;
 
 use crate::form::{lookup_schema, FieldSchema, FormLine};
-use crate::header::{parse_header, Header, HeaderParseError};
+use crate::header::{parse_header, HeaderParseError, HeaderParsing};
 // use csv::Reader;
 use csv::ReaderBuilder;
 
 pub struct Parser<R: Read> {
     /// If parsed yet, contains the header
-    pub header: Option<Header>,
+    pub header_parsing: Option<HeaderParsing>,
     /// The source of raw bytes
     reader: Option<R>,
     /// After reading the header, this contains the CSV reader
@@ -16,29 +16,39 @@ pub struct Parser<R: Read> {
     row_parser: Option<RowsParser<R>>,
 }
 
+pub fn print_reader(reader: &mut impl Read) {
+    let mut str = String::new();
+    reader.read_to_string(&mut str).unwrap();
+    println!("contents: {:?}", str);
+}
+
 impl<R: Read> Parser<R> {
     pub fn from_reader(reader: R) -> Self {
         Self {
             reader: Some(reader),
-            header: None,
+            header_parsing: None,
             row_parser: None,
         }
     }
 
-    pub fn parse_header(&mut self) -> Result<&Header, HeaderParseError> {
+    pub fn parse_header(&mut self) -> Result<&HeaderParsing, HeaderParseError> {
         if self.reader.is_none() {
             panic!("No reader")
         }
-        let header = parse_header(self.reader.as_mut().unwrap())?;
-        self.header = Some(header);
-        let result = self.header.as_ref().unwrap();
+        let header_parsing = parse_header(self.reader.as_mut().unwrap())?;
+        self.header_parsing = Some(header_parsing);
+        let result = self.header_parsing.as_ref().unwrap();
+        print_reader(self.reader.as_mut().unwrap());
         Ok(result)
     }
 
     pub fn next_line(&mut self) -> Result<Option<Result<FormLine, String>>, String> {
         if self.row_parser.is_none() {
             let reader = take(&mut self.reader).ok_or("No reader")?;
-            self.row_parser = Some(RowsParser::new(reader, false));
+            self.row_parser = Some(RowsParser::new(
+                reader,
+                self.header_parsing.as_ref().unwrap().uses_ascii28,
+            ));
         }
         let rp = self.row_parser.as_mut().ok_or("No row parser")?;
         let line = rp.next_line();
