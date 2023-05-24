@@ -35,6 +35,7 @@ pub struct FieldSchema {
 
 #[derive(Debug, Clone)]
 pub struct FormLine {
+    pub form_schema: FormSchema,
     pub fields: Vec<Field>,
 }
 

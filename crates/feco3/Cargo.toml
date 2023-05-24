@@ -10,3 +10,4 @@ name = "feco3"
 [dependencies]
 csv = "1.2"
 bytelines = "2.4"
+log = "0.4"

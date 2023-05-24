@@ -1,5 +1,7 @@
 use std::fs::File;
 
+use crate::writers::base::Writer;
+
 pub mod form;
 pub mod header;
 pub mod parser;
@@ -13,8 +15,11 @@ pub fn print_header(path: &str) {
     let file = File::open(path).unwrap();
     let mut parser = parser::Parser::from_reader(file);
     let header = parser.parse_header().unwrap();
+    let base_out_path = std::path::PathBuf::from("out");
+    let mut writer = writers::csv::CSVFileWriter::new(base_out_path);
     println!("Header: {:?}", header);
     while let Some(line) = parser.next_line().unwrap() {
         println!("Line: {:?}", line);
+        writer.write_form_line(&line.unwrap()).unwrap();
     }
 }

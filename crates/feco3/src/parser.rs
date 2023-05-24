@@ -16,12 +16,6 @@ pub struct Parser<R: Read> {
     row_parser: Option<RowsParser<R>>,
 }
 
-pub fn print_reader(reader: &mut impl Read) {
-    let mut str = String::new();
-    reader.read_to_string(&mut str).unwrap();
-    println!("contents: {:?}", str);
-}
-
 impl<R: Read> Parser<R> {
     pub fn from_reader(reader: R) -> Self {
         Self {
@@ -75,7 +69,7 @@ impl<R: Read> RowsParser<R> {
 
     fn next_line(&mut self) -> Option<Result<FormLine, String>> {
         let raw_record = self.records.next();
-        println!("raw_record: {:?}", raw_record);
+        log::debug!("raw_record: {:?}", raw_record);
         let record_or_error = raw_record?.map_err(|e| e.to_string());
         let record = match record_or_error {
             Ok(record) => record,
@@ -85,33 +79,31 @@ impl<R: Read> RowsParser<R> {
     }
 
     fn parse_csv_record(record: csv::ByteRecord) -> Result<FormLine, String> {
-        println!("record about to parse: {:?}", record);
         let mut record_fields = record.iter();
         let form_name = match record_fields.next() {
             Some(form_name) => form_name,
             None => return Err("No form name".to_string()),
         };
         let form_schema = lookup_schema(form_name);
-        let mut schema_fields = form_schema.fields.into_iter();
+        let mut schema_fields = form_schema.fields.iter();
         let mut fields = Vec::new();
         for raw_value in record_fields {
             let maybe_field_schema = schema_fields.next();
-            let field_schema;
-            if maybe_field_schema.is_none() {
-                field_schema = FieldSchema {
-                    name: "extra".to_string(),
-                    typ: ValueType::String,
-                };
-            } else {
-                field_schema = maybe_field_schema.unwrap();
-            }
-            fields.push(parse_raw_field_val(raw_value, &field_schema)?);
+            let default_field_schema = FieldSchema {
+                name: "extra".to_string(),
+                typ: ValueType::String,
+            };
+            let field_schema = maybe_field_schema.unwrap_or(&default_field_schema);
+            fields.push(parse_raw_field_val(raw_value, field_schema)?);
         }
         let extra_schema_fields = schema_fields.count();
         if extra_schema_fields > 0 {
-            println!("extra_schema_fields: {}", extra_schema_fields);
+            log::error!("extra_schema_fields: {}", extra_schema_fields);
         }
-        Ok(FormLine { fields })
+        Ok(FormLine {
+            form_schema: form_schema,
+            fields,
+        })
     }
 }
 

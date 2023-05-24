@@ -48,10 +48,10 @@ pub fn parse_header(src: &mut impl Read) -> Result {
 
     // If the first line contains "/*", its a legacy header.
     if byte_slice_contains(first_line.as_slice(), b"/*") {
-        println!("legacy header");
+        log::debug!("legacy header");
         return parse_legacy_header(&mut lines, &mut read_lines);
     } else {
-        println!("non-legacy header");
+        log::debug!("non-legacy header");
         return parse_nonlegacy_header(&first_line);
     }
 }
@@ -72,7 +72,7 @@ fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8
 fn parse_nonlegacy_header(line: &Vec<u8>) -> Result {
     let mut header = Header::default();
     let uses_ascii28 = line.contains(&b'\x1c');
-    println!("uses_ascii28: {}", uses_ascii28);
+    log::debug!("uses_ascii28: {}", uses_ascii28);
     let sep = if uses_ascii28 { b'\x1c' } else { b',' };
     let mut parts = line.split(|c| *c == sep);
     header.version = String::from_utf8_lossy(parts.next().unwrap()).to_string();
