@@ -2,6 +2,12 @@
 name = "feco3"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+description = "A library and CLI for working with FEC data"
+readme = "README.md"
+homepage = "https://github.com/NickCrews/feco3"
+documentation = "https://github.com/NickCrews/feco3"
+repository = "https://github.com/NickCrews/feco3"
 
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
