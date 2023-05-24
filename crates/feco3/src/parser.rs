@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::mem::take;
 
-use crate::form::{lookup_schema, FieldSchema, FormLine};
+use crate::form::{lookup_schema, FieldSchema, FormLine, ValueType};
 use crate::header::{parse_header, HeaderParseError, HeaderParsing};
 // use csv::Reader;
 use csv::ReaderBuilder;
@@ -38,12 +38,12 @@ impl<R: Read> Parser<R> {
         let header_parsing = parse_header(self.reader.as_mut().unwrap())?;
         self.header_parsing = Some(header_parsing);
         let result = self.header_parsing.as_ref().unwrap();
-        print_reader(self.reader.as_mut().unwrap());
         Ok(result)
     }
 
     pub fn next_line(&mut self) -> Result<Option<Result<FormLine, String>>, String> {
         if self.row_parser.is_none() {
+            // Hand off the reader ownership to the row parser.
             let reader = take(&mut self.reader).ok_or("No reader")?;
             self.row_parser = Some(RowsParser::new(
                 reader,
@@ -74,7 +74,9 @@ impl<R: Read> RowsParser<R> {
     }
 
     fn next_line(&mut self) -> Option<Result<FormLine, String>> {
-        let record_or_error = self.records.next()?.map_err(|e| e.to_string());
+        let raw_record = self.records.next();
+        println!("raw_record: {:?}", raw_record);
+        let record_or_error = raw_record?.map_err(|e| e.to_string());
         let record = match record_or_error {
             Ok(record) => record,
             Err(e) => return Some(Err(e)),
@@ -83,15 +85,31 @@ impl<R: Read> RowsParser<R> {
     }
 
     fn parse_csv_record(record: csv::ByteRecord) -> Result<FormLine, String> {
+        println!("record about to parse: {:?}", record);
         let mut record_fields = record.iter();
         let form_name = match record_fields.next() {
             Some(form_name) => form_name,
             None => return Err("No form name".to_string()),
         };
-        let schema = lookup_schema(form_name);
+        let form_schema = lookup_schema(form_name);
+        let mut schema_fields = form_schema.fields.into_iter();
         let mut fields = Vec::new();
-        for (field_schema, raw_value) in schema.fields.iter().zip(record_fields) {
-            fields.push(parse_raw_field_val(raw_value, field_schema)?);
+        for raw_value in record_fields {
+            let maybe_field_schema = schema_fields.next();
+            let field_schema;
+            if maybe_field_schema.is_none() {
+                field_schema = FieldSchema {
+                    name: "extra".to_string(),
+                    typ: ValueType::String,
+                };
+            } else {
+                field_schema = maybe_field_schema.unwrap();
+            }
+            fields.push(parse_raw_field_val(raw_value, &field_schema)?);
+        }
+        let extra_schema_fields = schema_fields.count();
+        if extra_schema_fields > 0 {
+            println!("extra_schema_fields: {}", extra_schema_fields);
         }
         Ok(FormLine { fields })
     }
@@ -102,22 +120,23 @@ fn parse_raw_field_val(
     field_schema: &FieldSchema,
 ) -> Result<crate::form::Field, String> {
     let s = String::from_utf8_lossy(raw_value).to_string();
-    let parsed_val = match field_schema.typ {
-        crate::form::ValueType::String => crate::form::Value::String(s),
-        crate::form::ValueType::Integer => {
-            let i = s.parse::<i64>().map_err(|e| e.to_string())?;
-            crate::form::Value::Integer(i)
-        }
-        crate::form::ValueType::Float => {
-            let f = s.parse::<f64>().map_err(|e| e.to_string())?;
-            crate::form::Value::Float(f)
-        }
-        crate::form::ValueType::Date => crate::form::Value::Date(s),
-        crate::form::ValueType::Boolean => {
-            let b = s.parse::<bool>().map_err(|e| e.to_string())?;
-            crate::form::Value::Boolean(b)
-        }
-    };
+    // let parsed_val = match field_schema.typ {
+    //     crate::form::ValueType::String => crate::form::Value::String(s),
+    //     crate::form::ValueType::Integer => {
+    //         let i = s.parse::<i64>().map_err(|e| e.to_string())?;
+    //         crate::form::Value::Integer(i)
+    //     }
+    //     crate::form::ValueType::Float => {
+    //         let f = s.parse::<f64>().map_err(|e| e.to_string())?;
+    //         crate::form::Value::Float(f)
+    //     }
+    //     crate::form::ValueType::Date => crate::form::Value::Date(s),
+    //     crate::form::ValueType::Boolean => {
+    //         let b = s.parse::<bool>().map_err(|e| e.to_string())?;
+    //         crate::form::Value::Boolean(b)
+    //     }
+    // };
+    let parsed_val = crate::form::Value::String(s);
     Ok(crate::form::Field {
         name: field_schema.name.clone(),
         value: parsed_val,

@@ -14,4 +14,7 @@ pub fn print_header(path: &str) {
     let mut parser = parser::Parser::from_reader(file);
     let header = parser.parse_header().unwrap();
     println!("Header: {:?}", header);
+    while let Some(line) = parser.next_line().unwrap() {
+        println!("Line: {:?}", line);
+    }
 }
