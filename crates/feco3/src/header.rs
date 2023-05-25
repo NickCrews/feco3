@@ -68,22 +68,37 @@ fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8
 
 /// Parse the header from a non-legacy file.
 ///
+/// This is based on the logic at
+/// https://github.com/esonderegger/fecfile/blob/a5ad9af6fc3b408acaf386871e608085f374441e/fecfile/fecparser.py#L134
+///
 /// This looks like a single line:
 /// "HDRFEC8.3NGP8"
+/// or
+/// "HDR8.3NGP8"
 fn parse_nonlegacy_header(line: &Vec<u8>) -> Result {
     let mut header = Header::default();
     let sep = Sep::detect(line);
     log::debug!("separator: {:?}", sep);
-    let mut parts = line.split(|c| *c == sep.to_byte());
-    if parts.next() != Some(b"HDR") {
+    let parts: Vec<&[u8]> = line.split(|c| *c == sep.to_byte()).collect();
+
+    if parts.len() < 2 {
         return Err(HeaderParseError { read: line.clone() });
     }
-    if parts.next() != Some(b"FEC") {
-        return Err(HeaderParseError { read: line.clone() });
+    if parts[1] == b"FEC" {
+        if parts.len() < 5 {
+            return Err(HeaderParseError { read: line.clone() });
+        }
+        header.version = bytes_to_string(parts[2]);
+        header.software_name = bytes_to_string(parts[3]);
+        header.software_version = bytes_to_string(parts[4]);
+    } else {
+        if parts.len() < 4 {
+            return Err(HeaderParseError { read: line.clone() });
+        }
+        header.version = bytes_to_string(parts[1]);
+        header.software_name = bytes_to_string(parts[2]);
+        header.software_version = bytes_to_string(parts[3]);
     }
-    header.version = String::from_utf8_lossy(parts.next().unwrap()).to_string();
-    header.software_name = String::from_utf8_lossy(parts.next().unwrap()).to_string();
-    header.software_version = String::from_utf8_lossy(parts.next().unwrap()).to_string();
     Ok(HeaderParsing { header, sep })
 }
 
@@ -111,9 +126,12 @@ fn next_line(
     Ok(line)
 }
 
-/// Return true if haystack contains needle.
 fn byte_slice_contains(haystack: &[u8], needle: &[u8]) -> bool {
     haystack
         .windows(needle.len())
         .any(|window| window == needle)
+}
+
+fn bytes_to_string(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).to_string()
 }
