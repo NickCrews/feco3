@@ -8,6 +8,7 @@ pub mod form;
 pub mod header;
 pub mod parser;
 mod schemas;
+mod summary;
 pub mod writers;
 
 #[macro_use]

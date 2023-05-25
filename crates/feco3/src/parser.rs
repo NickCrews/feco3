@@ -3,6 +3,7 @@ use std::mem::take;
 
 use crate::form::{lookup_schema, FieldSchema, FormLine, ValueType};
 use crate::header::{parse_header, HeaderParseError, HeaderParsing};
+use crate::summary::Summary;
 // use csv::Reader;
 use csv::ReaderBuilder;
 
@@ -60,6 +61,10 @@ impl<R: Read> Parser<R> {
         self.header_parsing = Some(header_parsing);
         let result = self.header_parsing.as_ref().unwrap();
         Ok(result)
+    }
+
+    pub fn parse_summary(&mut self) -> Result<Summary, String> {
+        Err("Not implemented".to_string())
     }
 
     pub fn next_line(&mut self) -> Result<Option<Result<FormLine, String>>, String> {
