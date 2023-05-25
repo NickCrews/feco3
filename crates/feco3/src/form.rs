@@ -58,15 +58,8 @@ impl PartialEq for FormSchema {
     }
 }
 
-/// Lookup a schema given a form type name.
-pub fn lookup_schema(form_type: &[u8]) -> FormSchema {
-    // let types = vec![
-    //     Value::String,
-    //     Value::Integer,
-    //     Value::Float,
-    //     Value::Date,
-    //     Value::Boolean,
-    // ];
+/// Lookup a schema given the .FEC file version and the form type.
+pub fn lookup_schema(version: &String, form_type: &[u8]) -> FormSchema {
     let fields = vec![
         FieldSchema {
             name: "a".to_string(),

@@ -41,6 +41,7 @@ impl<R: Read> Parser<R> {
             let reader = take(&mut self.reader).ok_or("No reader")?;
             self.row_parser = Some(RowsParser::new(
                 reader,
+                self.header_parsing.as_ref().unwrap().header.version.clone(),
                 self.header_parsing.as_ref().unwrap().uses_ascii28,
             ));
         }
@@ -51,11 +52,13 @@ impl<R: Read> Parser<R> {
 }
 
 struct RowsParser<R: Read> {
+    /// The version of the FEC file format
+    version: String,
     records: csv::ByteRecordsIntoIter<R>,
 }
 
 impl<R: Read> RowsParser<R> {
-    fn new(src: R, use_ascii28: bool) -> Self {
+    fn new(src: R, version: String, use_ascii28: bool) -> Self {
         let delim = if use_ascii28 { b'\x1c' } else { b',' };
         let reader = ReaderBuilder::new()
             .delimiter(delim)
@@ -63,6 +66,7 @@ impl<R: Read> RowsParser<R> {
             .flexible(true)
             .from_reader(src);
         Self {
+            version,
             records: reader.into_byte_records(),
         }
     }
@@ -75,16 +79,16 @@ impl<R: Read> RowsParser<R> {
             Ok(record) => record,
             Err(e) => return Some(Err(e)),
         };
-        Some(Self::parse_csv_record(record))
+        Some(self.parse_csv_record(record))
     }
 
-    fn parse_csv_record(record: csv::ByteRecord) -> Result<FormLine, String> {
+    fn parse_csv_record(&self, record: csv::ByteRecord) -> Result<FormLine, String> {
         let mut record_fields = record.iter();
         let form_name = match record_fields.next() {
             Some(form_name) => form_name,
             None => return Err("No form name".to_string()),
         };
-        let form_schema = lookup_schema(form_name);
+        let form_schema = lookup_schema(&self.version, form_name);
         let mut schema_fields = form_schema.fields.iter();
         let mut fields = Vec::new();
         for raw_value in record_fields {
