@@ -1,8 +1,9 @@
 use std::io::Read;
 use std::mem::take;
 
-use crate::form::{lookup_schema, FieldSchema, FormLine, ValueType};
+use crate::form::{FieldSchema, FormLine, ValueType};
 use crate::header::{parse_header, HeaderParseError, HeaderParsing};
+use crate::schemas::lookup_schema;
 use crate::summary::Summary;
 // use csv::Reader;
 use csv::ReaderBuilder;
