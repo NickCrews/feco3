@@ -42,22 +42,19 @@ pub fn parse_header(src: &mut impl Read) -> Result {
     // the src. As soon as we see every line of the header, we want to stop
     // reading so the rest of src can be used by the RowsParser.
     let mut lines = ByteLines::new(BufReader::with_capacity(1, src)).into_iter();
-    // let mut lines = BufReader::with_capacity(1, src).lines();
     let mut read_lines = Vec::new();
     let first_line = next_line(&mut read_lines, &mut lines)?;
-    // let first_line = lines.next()()
 
     // If the first line contains "/*", its a legacy header.
     if byte_slice_contains(first_line.as_slice(), b"/*") {
-        log::debug!("legacy header");
-        return parse_legacy_header(&mut lines, &mut read_lines);
+        parse_legacy_header(&mut lines, &mut read_lines)
     } else {
-        log::debug!("non-legacy header");
-        return parse_nonlegacy_header(&first_line);
+        parse_nonlegacy_header(&first_line)
     }
 }
 
 fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8>>) -> Result {
+    log::debug!("parsing legacy header");
     let mut header = Header::default();
     header.version = String::from_utf8_lossy(&next_line(read_lines, lines)?).to_string();
     Ok(HeaderParsing {
@@ -76,6 +73,7 @@ fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8
 /// or
 /// "HDR8.3NGP8"
 fn parse_nonlegacy_header(line: &Vec<u8>) -> Result {
+    log::debug!("parsing non-legacy header");
     let mut header = Header::default();
     let sep = Sep::detect(line);
     log::debug!("separator: {:?}", sep);
