@@ -5,6 +5,7 @@ use std::{
 
 use crate::parser::Sep;
 use bytelines::ByteLines;
+use regex::bytes;
 
 #[derive(Debug, Default, Clone)]
 pub struct Header {
@@ -53,14 +54,78 @@ pub fn parse_header(src: &mut impl Read) -> Result {
     }
 }
 
+// /* Header
+// FEC_Ver_# = 2.02
+// Soft_Name = FECfile
+// Soft_Ver# = 3
+// Dec/NoDec = DEC
+// Date_Fmat = CCYYMMDD
+// NameDelim = ^
+// Form_Name = F3XA
+// FEC_IDnum = C00101766
+// Committee = CONTINENTAL AIRLINES INC EMPLOYEE FUND FOR A BETTER AMERICA (FKA CONTINENTAL HOLDINGS PAC)
+// Control_# = K245592Q
+// Schedule_Counts:
+// SA11A1    = 00139
+// SA17      = 00001
+// SB23      = 00008
+// SB29      = 00003
+// /* End Header
+// --- Other lines---
 fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8>>) -> Result {
     log::debug!("parsing legacy header");
+    // read from lines until we hit another "/*" or we've read 100 lines,
+    // at which point we error
     let mut header = Header::default();
-    header.version = String::from_utf8_lossy(&next_line(read_lines, lines)?).to_string();
+    let mut num_lines = 0;
+    loop {
+        let line = next_line(read_lines, lines)?;
+        if byte_slice_contains(line.as_slice(), b"/*") {
+            break;
+        }
+        num_lines += 1;
+        if num_lines > 100 {
+            return Err(HeaderParseError {
+                read: read_lines.concat(),
+            });
+        }
+        let parts: Vec<&[u8]> = line.split(|c| *c == b'=').collect();
+        if parts.len() != 2 {
+            return Err(HeaderParseError {
+                read: read_lines.concat(),
+            });
+        }
+        let key = parts[0];
+        let value = parts[1];
+        match norm_header_key(key).as_str() {
+            "fec_ver_#" => header.version = norm_header_value(value),
+            "soft_name" => header.software_name = norm_header_value(value),
+            "soft_ver#" => header.software_version = norm_header_value(value),
+            _ => {}
+        }
+    }
+    // Make sure we've found all the required fields.
+    if header.version == "" || header.software_name == "" || header.software_version == "" {
+        return Err(HeaderParseError {
+            read: read_lines.concat(),
+        });
+    }
     Ok(HeaderParsing {
         header,
         sep: Sep::Comma,
     })
+}
+
+fn norm_header_value(value: &[u8]) -> String {
+    bytes_to_string(value).as_str().trim().to_string()
+}
+
+fn norm_header_key(key: &[u8]) -> String {
+    bytes_to_string(key)
+        .to_lowercase()
+        .as_str()
+        .trim()
+        .to_string()
 }
 
 /// Parse the header from a non-legacy file.
