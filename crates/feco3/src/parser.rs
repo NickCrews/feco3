@@ -88,24 +88,19 @@ impl<R: Read> RowsParser<R> {
             Some(form_name) => form_name,
             None => return Err("No form name".to_string()),
         };
-        let form_schema = lookup_schema(&self.version, form_name);
+        let form_name_str = String::from_utf8(form_name.to_vec()).map_err(|e| e.to_string())?;
+        let form_schema = lookup_schema(&self.version, &form_name_str)?;
         let mut schema_fields = form_schema.fields.iter();
         let mut fields = Vec::new();
         for raw_value in record_fields {
-            let maybe_field_schema = schema_fields.next();
-            let default_field_schema = FieldSchema {
-                name: "extra".to_string(),
-                typ: ValueType::String,
-            };
-            let field_schema = maybe_field_schema.unwrap_or(&default_field_schema);
-            fields.push(parse_raw_field_val(raw_value, field_schema)?);
+            fields.push(parse_raw_field_val(raw_value, schema_fields.next())?);
         }
         let extra_schema_fields = schema_fields.count();
         if extra_schema_fields > 0 {
             log::error!("extra_schema_fields: {}", extra_schema_fields);
         }
         Ok(FormLine {
-            form_schema: form_schema,
+            form_schema: form_schema.clone(),
             fields,
         })
     }
@@ -113,26 +108,30 @@ impl<R: Read> RowsParser<R> {
 
 fn parse_raw_field_val(
     raw_value: &[u8],
-    field_schema: &FieldSchema,
+    field_schema: Option<&FieldSchema>,
 ) -> Result<crate::form::Field, String> {
     let s = String::from_utf8_lossy(raw_value).to_string();
-    // let parsed_val = match field_schema.typ {
-    //     crate::form::ValueType::String => crate::form::Value::String(s),
-    //     crate::form::ValueType::Integer => {
-    //         let i = s.parse::<i64>().map_err(|e| e.to_string())?;
-    //         crate::form::Value::Integer(i)
-    //     }
-    //     crate::form::ValueType::Float => {
-    //         let f = s.parse::<f64>().map_err(|e| e.to_string())?;
-    //         crate::form::Value::Float(f)
-    //     }
-    //     crate::form::ValueType::Date => crate::form::Value::Date(s),
-    //     crate::form::ValueType::Boolean => {
-    //         let b = s.parse::<bool>().map_err(|e| e.to_string())?;
-    //         crate::form::Value::Boolean(b)
-    //     }
-    // };
-    let parsed_val = crate::form::Value::String(s);
+    let default_field_schema = FieldSchema {
+        name: "extra".to_string(),
+        typ: ValueType::String,
+    };
+    let field_schema = field_schema.unwrap_or(&default_field_schema);
+    let parsed_val = match field_schema.typ {
+        crate::form::ValueType::String => crate::form::Value::String(s),
+        crate::form::ValueType::Integer => {
+            let i = s.parse::<i64>().map_err(|e| e.to_string())?;
+            crate::form::Value::Integer(i)
+        }
+        crate::form::ValueType::Float => {
+            let f = s.parse::<f64>().map_err(|e| e.to_string())?;
+            crate::form::Value::Float(f)
+        }
+        crate::form::ValueType::Date => crate::form::Value::Date(s),
+        crate::form::ValueType::Boolean => {
+            let b = s.parse::<bool>().map_err(|e| e.to_string())?;
+            crate::form::Value::Boolean(b)
+        }
+    };
     Ok(crate::form::Field {
         name: field_schema.name.clone(),
         value: parsed_val,

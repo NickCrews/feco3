@@ -3,7 +3,10 @@ use std::path::PathBuf;
 
 #[pyfunction]
 fn parse_from_path(fec_path: PathBuf, out_dir: PathBuf) -> PyResult<()> {
-    Ok(feco3::parse_from_path(&fec_path, out_dir))
+    match feco3::parse_from_path(&fec_path, out_dir) {
+        Ok(()) => Ok(()),
+        Err(e) => Err(PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string())),
+    }
 }
 
 #[pymodule]

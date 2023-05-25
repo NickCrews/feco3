@@ -75,6 +75,12 @@ fn parse_nonlegacy_header(line: &Vec<u8>) -> Result {
     log::debug!("uses_ascii28: {}", uses_ascii28);
     let sep = if uses_ascii28 { b'\x1c' } else { b',' };
     let mut parts = line.split(|c| *c == sep);
+    if parts.next() != Some(b"HDR") {
+        return Err(HeaderParseError { read: line.clone() });
+    }
+    if parts.next() != Some(b"FEC") {
+        return Err(HeaderParseError { read: line.clone() });
+    }
     header.version = String::from_utf8_lossy(parts.next().unwrap()).to_string();
     header.software_name = String::from_utf8_lossy(parts.next().unwrap()).to_string();
     header.software_version = String::from_utf8_lossy(parts.next().unwrap()).to_string();

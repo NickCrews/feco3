@@ -59,33 +59,19 @@ impl PartialEq for FormSchema {
 }
 
 /// Lookup a schema given the .FEC file version and the form type.
-pub fn lookup_schema(version: &String, form_type: &[u8]) -> FormSchema {
-    let fields = vec![
-        FieldSchema {
-            name: "a".to_string(),
-            typ: ValueType::String,
-        },
-        FieldSchema {
-            name: "b".to_string(),
-            typ: ValueType::Integer,
-        },
-        FieldSchema {
-            name: "c".to_string(),
-            typ: ValueType::Float,
-        },
-        FieldSchema {
-            name: "d".to_string(),
-            typ: ValueType::Date,
-        },
-        FieldSchema {
-            name: "e".to_string(),
-            typ: ValueType::Boolean,
-        },
-    ];
-    FormSchema {
-        name: String::from_utf8_lossy(form_type).to_string(),
-        fields,
+pub fn lookup_schema(version: &String, form_type: &String) -> Result<&'static FormSchema, String> {
+    let versions_and_schemas = crate::schemas::SCHEMAS
+        .get(form_type.as_str())
+        .ok_or(format!("Couldn't find form type: {}", form_type))?;
+    for (version_regex, schema) in versions_and_schemas {
+        if version_regex.is_match(version) {
+            return Ok(schema);
+        }
     }
+    Err(format!(
+        "Couldn't find schema for form type: {}, version: {}",
+        form_type, version
+    ))
 }
 
 impl Eq for FormSchema {}
