@@ -96,7 +96,6 @@ version = "0.1.0"
 dependencies = [
  "bytelines",
  "csv",
- "env_logger",
  "lazy_static",
  "log",
  "regex",
@@ -106,6 +105,7 @@ dependencies = [
 name = "feco3_python"
 version = "0.1.0"
 dependencies = [
+ "env_logger",
  "feco3",
  "pyo3",
 ]

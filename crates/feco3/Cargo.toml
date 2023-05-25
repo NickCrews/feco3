@@ -3,7 +3,7 @@ name = "feco3"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
-description = "A library and CLI for working with FEC data"
+description = "A library for working with FEC data"
 readme = "README.md"
 homepage = "https://github.com/NickCrews/feco3"
 documentation = "https://github.com/NickCrews/feco3"
@@ -14,11 +14,8 @@ repository = "https://github.com/NickCrews/feco3"
 name = "feco3"
 
 [dependencies]
-csv = "1.2"
 bytelines = "2.4"
+csv = "1.2"
 lazy_static = "1.4.0"
 log = "0.4"
-# TODO this should get moved out of the core into
-# a CLI and the python bindings
-env_logger = "0.9"
 regex = "1"

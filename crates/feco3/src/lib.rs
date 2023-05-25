@@ -16,7 +16,6 @@ extern crate lazy_static;
 pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<dyn Error>> {
     // TODO Figure out how to reconfigure this, since currently
     // it only configures it on the first call and then never again.
-    env_logger::try_init();
     let file = File::open(fec_path)?;
     let mut parser = parser::Parser::from_reader(file);
     parser.parse_header()?;

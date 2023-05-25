@@ -11,6 +11,7 @@ fn parse_from_path(fec_path: PathBuf, out_dir: PathBuf) -> PyResult<()> {
 
 #[pymodule]
 fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
+    env_logger::try_init();
     m.add_function(wrap_pyfunction!(parse_from_path, m)?)?;
     Ok(())
 }

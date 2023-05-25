@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.18.1", features = ["extension-module"] }
 feco3 = { path = "../feco3" }
+env_logger = "0.9"
