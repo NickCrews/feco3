@@ -6,6 +6,33 @@ use crate::header::{parse_header, HeaderParseError, HeaderParsing};
 // use csv::Reader;
 use csv::ReaderBuilder;
 
+#[derive(Debug, Clone)]
+pub enum Sep {
+    Comma,
+    Ascii28,
+}
+
+impl Sep {
+    /// Return the byte value of the separator.
+    /// e.g. b',' or b'\x1c'
+    pub fn to_byte(&self) -> u8 {
+        match self {
+            Sep::Comma => b',',
+            Sep::Ascii28 => b'\x1c',
+        }
+    }
+
+    /// Detect the separator from a slice of bytes.
+    /// If the slice contains b'\x1c', return Ascii28.
+    pub fn detect(bytes: &[u8]) -> Self {
+        if bytes.contains(&Self::Ascii28.to_byte()) {
+            Self::Ascii28
+        } else {
+            Self::Comma
+        }
+    }
+}
+
 pub struct Parser<R: Read> {
     /// If parsed yet, contains the header
     pub header_parsing: Option<HeaderParsing>,
@@ -39,11 +66,8 @@ impl<R: Read> Parser<R> {
         if self.row_parser.is_none() {
             // Hand off the reader ownership to the row parser.
             let reader = take(&mut self.reader).ok_or("No reader")?;
-            self.row_parser = Some(RowsParser::new(
-                reader,
-                self.header_parsing.as_ref().unwrap().header.version.clone(),
-                self.header_parsing.as_ref().unwrap().uses_ascii28,
-            ));
+            let hp = self.header_parsing.as_ref().ok_or("No header")?;
+            self.row_parser = Some(RowsParser::new(reader, hp.header.version.clone(), &hp.sep));
         }
         let rp = self.row_parser.as_mut().ok_or("No row parser")?;
         let line = rp.next_line();
@@ -58,10 +82,9 @@ struct RowsParser<R: Read> {
 }
 
 impl<R: Read> RowsParser<R> {
-    fn new(src: R, version: String, use_ascii28: bool) -> Self {
-        let delim = if use_ascii28 { b'\x1c' } else { b',' };
+    fn new(src: R, version: String, sep: &Sep) -> Self {
         let reader = ReaderBuilder::new()
-            .delimiter(delim)
+            .delimiter(sep.to_byte())
             .has_headers(false)
             .flexible(true)
             .from_reader(src);

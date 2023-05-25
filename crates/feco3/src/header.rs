@@ -3,6 +3,7 @@ use std::{
     io::{BufReader, Read},
 };
 
+use crate::parser::Sep;
 use bytelines::ByteLines;
 
 #[derive(Debug, Default, Clone)]
@@ -28,7 +29,7 @@ impl std::error::Error for HeaderParseError {}
 #[derive(Debug, Clone)]
 pub struct HeaderParsing {
     pub header: Header,
-    pub uses_ascii28: bool,
+    pub sep: Sep,
 }
 
 type Result = std::result::Result<HeaderParsing, HeaderParseError>;
@@ -61,7 +62,7 @@ fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8
     header.version = String::from_utf8_lossy(&next_line(read_lines, lines)?).to_string();
     Ok(HeaderParsing {
         header,
-        uses_ascii28: false,
+        sep: Sep::Comma,
     })
 }
 
@@ -71,10 +72,9 @@ fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8
 /// "HDRFEC8.3NGP8"
 fn parse_nonlegacy_header(line: &Vec<u8>) -> Result {
     let mut header = Header::default();
-    let uses_ascii28 = line.contains(&b'\x1c');
-    log::debug!("uses_ascii28: {}", uses_ascii28);
-    let sep = if uses_ascii28 { b'\x1c' } else { b',' };
-    let mut parts = line.split(|c| *c == sep);
+    let sep = Sep::detect(line);
+    log::debug!("separator: {:?}", sep);
+    let mut parts = line.split(|c| *c == sep.to_byte());
     if parts.next() != Some(b"HDR") {
         return Err(HeaderParseError { read: line.clone() });
     }
@@ -84,10 +84,7 @@ fn parse_nonlegacy_header(line: &Vec<u8>) -> Result {
     header.version = String::from_utf8_lossy(parts.next().unwrap()).to_string();
     header.software_name = String::from_utf8_lossy(parts.next().unwrap()).to_string();
     header.software_version = String::from_utf8_lossy(parts.next().unwrap()).to_string();
-    Ok(HeaderParsing {
-        header,
-        uses_ascii28,
-    })
+    Ok(HeaderParsing { header, sep })
 }
 
 ///Get the next line, return an error if we can't.
