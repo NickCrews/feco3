@@ -121,6 +121,7 @@ impl<R: Read> RowsParser<R> {
         let form_schema = lookup_schema(&self.version, &form_name_str)?;
         let mut schema_fields = form_schema.fields.iter();
         let mut fields = Vec::new();
+        fields.push(parse_raw_field_val(form_name, None)?);
         for raw_value in record_fields {
             fields.push(parse_raw_field_val(raw_value, schema_fields.next())?);
         }
