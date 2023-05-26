@@ -78,6 +78,16 @@ impl<R: Read> FecFile<R> {
     }
 
     pub fn next_line(&mut self) -> Result<Option<Result<Line, String>>, String> {
+        self.make_row_parser()?;
+        let rp = self.row_parser.as_mut().expect("No row parser");
+        let line = rp.next_line();
+        Ok(line)
+    }
+
+    fn make_row_parser(&mut self) -> Result<(), String> {
+        if self.row_parser.is_some() {
+            return Ok(());
+        }
         self.parse_header().map_err(|e| e.to_string())?;
         let header = self.header.as_ref().expect("No header");
         let sep = self.sep.as_ref().expect("No sep");
@@ -86,9 +96,7 @@ impl<R: Read> FecFile<R> {
             let reader = take(&mut self.reader).ok_or("No reader")?;
             self.row_parser = Some(RowsParser::new(reader, header.fec_version.clone(), &sep));
         }
-        let rp = self.row_parser.as_mut().expect("No row parser");
-        let line = rp.next_line();
-        Ok(line)
+        Ok(())
     }
 }
 
