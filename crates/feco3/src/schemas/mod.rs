@@ -10,8 +10,8 @@ use std::sync::Mutex;
 /// This is found in the header of the .FEC file.
 /// The line code is the first field in each line of the .FEC file.
 /// It is a string like "F3" or "SA11".
-pub fn lookup_schema(version: &String, line_code: &String) -> Result<&'static LineSchema, String> {
-    let key = (version.clone(), line_code.clone());
+pub fn lookup_schema(version: &str, line_code: &str) -> Result<&'static LineSchema, String> {
+    let key = (version.to_string(), line_code.to_string());
     if let Some(schema) = CACHE.lock().unwrap().get(&key) {
         return Ok(schema);
     }
@@ -20,7 +20,7 @@ pub fn lookup_schema(version: &String, line_code: &String) -> Result<&'static Li
     Ok(schema)
 }
 
-fn do_lookup(version: &String, line_code: &String) -> Result<&'static LineSchema, String> {
+fn do_lookup(version: &str, line_code: &str) -> Result<&'static LineSchema, String> {
     log::debug!(
         "looking up schema for version: '{}', line_code: '{}'",
         version,
@@ -45,7 +45,7 @@ fn do_lookup(version: &String, line_code: &String) -> Result<&'static LineSchema
                 });
             }
             let schema = LineSchema {
-                code: line_code.clone(),
+                code: line_code.to_string(),
                 fields: field_schemas,
             };
             log::debug!("found schema: {:?}", schema);
