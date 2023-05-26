@@ -1,3 +1,4 @@
+use std::fmt;
 use std::hash::Hash;
 
 use crate::schemas::lookup_schema;
@@ -46,6 +47,17 @@ pub struct Line {
     pub values: Vec<Value>,
 }
 
+impl Line {
+    pub fn get_value(&self, field_name: &str) -> Option<&Value> {
+        let field_index = self
+            .schema
+            .fields
+            .iter()
+            .position(|f| f.name == field_name)?;
+        self.values.get(field_index)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct LineSchema {
     /// Line code, eg "F3" or "SA11"
@@ -80,15 +92,14 @@ impl Eq for LineSchema {}
 /// If we see more values than expected, we don't know what type they are
 /// supposed to be, so we just return them as Strings.
 pub fn parse<'a>(
-    fec_version: &String,
-    raw: &mut impl Iterator<Item = &'a [u8]>,
+    fec_version: &str,
+    raw: &mut impl Iterator<Item = &'a str>,
 ) -> Result<Line, String> {
     let line_code = match raw.next() {
         Some(form_name) => form_name,
         None => return Err("No form name".to_string()),
     };
-    let line_code_str = String::from_utf8(line_code.to_vec()).map_err(|e| e.to_string())?;
-    let form_schema = lookup_schema(fec_version, &line_code_str)?;
+    let form_schema = lookup_schema(fec_version, &line_code)?;
     let mut schema_fields = form_schema.fields.iter();
     let mut fields = Vec::new();
     fields.push(parse_raw_field_val(line_code, None)?);
@@ -106,28 +117,28 @@ pub fn parse<'a>(
 }
 
 fn parse_raw_field_val(
-    raw_value: &[u8],
+    raw: &str,
     field_schema: Option<&FieldSchema>,
 ) -> Result<crate::line::Value, String> {
-    let s = String::from_utf8_lossy(raw_value).to_string();
+    // let s = String::from_utf8_lossy(raw_value).to_string();
     let default_field_schema = FieldSchema {
         name: "extra".to_string(),
         typ: ValueType::String,
     };
     let field_schema = field_schema.unwrap_or(&default_field_schema);
     let parsed_val = match field_schema.typ {
-        crate::line::ValueType::String => crate::line::Value::String(s),
+        crate::line::ValueType::String => crate::line::Value::String(raw.to_string()),
         crate::line::ValueType::Integer => {
-            let i = s.parse::<i64>().map_err(|e| e.to_string())?;
+            let i = raw.parse::<i64>().map_err(|e| e.to_string())?;
             crate::line::Value::Integer(i)
         }
         crate::line::ValueType::Float => {
-            let f = s.parse::<f64>().map_err(|e| e.to_string())?;
+            let f = raw.parse::<f64>().map_err(|e| e.to_string())?;
             crate::line::Value::Float(f)
         }
-        crate::line::ValueType::Date => crate::line::Value::Date(s),
+        crate::line::ValueType::Date => crate::line::Value::Date(raw.to_string()),
         crate::line::ValueType::Boolean => {
-            let b = s.parse::<bool>().map_err(|e| e.to_string())?;
+            let b = raw.parse::<bool>().map_err(|e| e.to_string())?;
             crate::line::Value::Boolean(b)
         }
     };

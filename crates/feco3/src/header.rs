@@ -9,15 +9,23 @@ use std::{
     io::{BufReader, Read},
 };
 
-use crate::parser::Sep;
+use crate::{line::parse, parser::Sep};
 use bytelines::ByteLines;
 use std::result::Result;
 
+/// See the "hdr" section of mappings.json to
+/// see where these fields come from.
 #[derive(Debug, Default, Clone)]
 pub struct Header {
-    pub version: String,
+    /// The version of the FEC file format.
+    pub fec_version: String,
+    /// The name of the software used to generate the file.
     pub software_name: String,
-    pub software_version: String,
+    /// The rest of the header fields may be missing,
+    /// depending on the version of the FEC file.
+    pub software_version: Option<String>,
+    pub report_id: Option<String>,
+    pub report_number: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -116,20 +124,20 @@ fn parse_legacy_header(
         }
         let (key, value) = parse_legacy_kv(&line)?;
         match key.to_lowercase().as_str() {
-            "fec_ver_#" => header.version = value,
+            "fec_ver_#" => header.fec_version = value,
             "soft_name" => header.software_name = value,
-            "soft_ver#" => header.software_version = value,
+            "soft_ver#" => header.software_version = Some(value),
             _ => {}
         }
     }
     // Make sure we've found all the required fields.
-    if header.version == "" {
+    if header.fec_version == "" {
         return Err("missing FEC_Ver_#".to_string());
     }
     if header.software_name == "" {
         return Err("missing Soft_Name".to_string());
     }
-    if header.software_version == "" {
+    if header.software_version.is_none() {
         return Err("missing Soft_Ver#".to_string());
     }
     Ok(HeaderParsing {
@@ -157,7 +165,7 @@ fn parse_legacy_kv(line: &str) -> std::result::Result<(String, String), String> 
 /// "HDRFEC8.3NGP8"
 /// or
 /// "HDR8.3NGP8"
-fn parse_nonlegacy_header(line: &String) -> Result<HeaderParsing, String> {
+fn parse_nonlegacy_header(line: &str) -> Result<HeaderParsing, String> {
     log::debug!("parsing non-legacy header");
     let mut header = Header::default();
     let sep = Sep::detect(line);
@@ -167,21 +175,24 @@ fn parse_nonlegacy_header(line: &String) -> Result<HeaderParsing, String> {
     if parts.len() < 2 {
         return Err("less than 2 parts in header".to_string());
     }
-    if parts[1] == "FEC" {
-        if parts.len() < 5 {
-            return Err("less than 5 parts in header".to_string());
+    let version = match parts[1] {
+        "FEC" => {
+            if parts.len() < 3 {
+                return Err("less than 3 parts in header".to_string());
+            }
+            parts[2]
         }
-        header.version = parts[2].to_string();
-        header.software_name = parts[3].to_string();
-        header.software_version = parts[4].to_string();
-    } else {
-        if parts.len() < 4 {
-            return Err("less than 4 parts in header".to_string());
-        }
-        header.version = parts[1].to_string();
-        header.software_name = parts[2].to_string();
-        header.software_version = parts[3].to_string();
-    }
+        _ => parts[1],
+    };
+    let line = parse(version, &mut parts.into_iter())?;
+    header.fec_version = version.to_string();
+    header.software_name = line
+        .get_value("soft_name")
+        .ok_or("missing soft_name")?
+        .to_string();
+    header.software_version = line.get_value("soft_ver").map(|s| s.to_string());
+    header.report_id = line.get_value("report_id").map(|s| s.to_string());
+    header.report_number = line.get_value("report_number").map(|s| s.to_string());
     Ok(HeaderParsing { header, sep })
 }
 

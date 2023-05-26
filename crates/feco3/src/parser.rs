@@ -1,5 +1,6 @@
 use std::io::Read;
 use std::mem::take;
+use std::str::{from_utf8, Utf8Error};
 
 use crate::header::{parse_header, HeaderParseError, HeaderParsing};
 use crate::line::{parse, Line};
@@ -25,7 +26,7 @@ impl Sep {
 
     /// Detect the separator from a string.
     /// If the slice contains b'\x1c', return Ascii28.
-    pub fn detect(s: &String) -> Self {
+    pub fn detect(s: &str) -> Self {
         if s.contains('\x1c') {
             Self::Ascii28
         } else {
@@ -72,7 +73,11 @@ impl<R: Read> Parser<R> {
             // Hand off the reader ownership to the row parser.
             let reader = take(&mut self.reader).ok_or("No reader")?;
             let hp = self.header_parsing.as_ref().ok_or("No header")?;
-            self.row_parser = Some(RowsParser::new(reader, hp.header.version.clone(), &hp.sep));
+            self.row_parser = Some(RowsParser::new(
+                reader,
+                hp.header.fec_version.clone(),
+                &hp.sep,
+            ));
         }
         let rp = self.row_parser.as_mut().ok_or("No row parser")?;
         let line = rp.next_line();
@@ -106,6 +111,12 @@ impl<R: Read> RowsParser<R> {
             Ok(record) => record,
             Err(e) => return Some(Err(e.to_string())),
         };
-        Some(parse(&self.version, &mut record.iter()))
+        let raw_fields: Result<Vec<&str>, Utf8Error> = record.into_iter().map(from_utf8).collect();
+        let fields = match raw_fields {
+            Ok(fields) => fields,
+            Err(e) => return Some(Err(e.to_string())),
+        };
+        let line = parse(&self.version, &mut fields.into_iter());
+        Some(line)
     }
 }
