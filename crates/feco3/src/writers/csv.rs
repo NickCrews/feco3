@@ -1,4 +1,4 @@
-use super::base::{FileLineWriter, LineWriter, MultiFileWriter};
+use super::base::{FileLineWriter, LineWriter, MultiFileLineWriter};
 use crate::line::{Line, LineSchema};
 use std::{fs::File, path::Path};
 
@@ -61,4 +61,4 @@ impl FileLineWriter for CSVFileLineWriter {
 }
 
 /// A [MultiFileWriter] that writes to CSV files.
-pub type CSVMultiFileWriter = MultiFileWriter<CSVFileLineWriter>;
+pub type CSVMultiFileWriter = MultiFileLineWriter<CSVFileLineWriter>;

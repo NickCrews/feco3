@@ -19,17 +19,6 @@ pub trait FileLineWriter: LineWriter {
     fn file_name(form_name: String) -> String;
     fn new(path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>>;
 
-    fn new_in_dir(base_path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>> {
-        let form_name = Self::norm_form_name(&schema.code);
-        let file_name = Self::file_name(form_name);
-        let path = base_path.join(file_name);
-        log::debug!("Creating base dir at: {:?}", base_path);
-        fs::create_dir_all(base_path)?;
-        log::debug!("Creating file: {:?}", path);
-        let result = Self::new(&path, schema)?;
-        Ok(result)
-    }
-
     /// Some forms have a slash in their name, which is not allowed in file names.
     fn norm_form_name(name: &str) -> String {
         name.replace("/", "-")
@@ -37,12 +26,12 @@ pub trait FileLineWriter: LineWriter {
 }
 
 /// A [LineWriter] that writes to a directory, each form to its own file.
-pub struct MultiFileWriter<T: FileLineWriter> {
+pub struct MultiFileLineWriter<T: FileLineWriter> {
     base_path: PathBuf,
     writers: HashMap<LineSchema, T>,
 }
 
-impl<T: FileLineWriter> MultiFileWriter<T> {
+impl<T: FileLineWriter> MultiFileLineWriter<T> {
     pub fn new(base_path: PathBuf) -> Self {
         Self {
             base_path: base_path,
@@ -55,12 +44,22 @@ impl<T: FileLineWriter> MultiFileWriter<T> {
     fn get_form_writer(&mut self, schema: &LineSchema) -> std::io::Result<&mut T> {
         Ok(match self.writers.entry(schema.clone()) {
             Occupied(e) => e.into_mut(),
-            Vacant(e) => e.insert(*T::new_in_dir(&self.base_path, schema)?),
+            Vacant(e) => e.insert(*Self::new_writer(&self.base_path, schema)?),
         })
+    }
+
+    fn new_writer(base_path: &PathBuf, schema: &LineSchema) -> std::io::Result<Box<T>> {
+        let form_name = T::norm_form_name(&schema.code);
+        let file_name = T::file_name(form_name);
+        let path = base_path.join(file_name);
+        fs::create_dir_all(&base_path)?;
+        log::debug!("Creating new FileLineWriter at: {:?}", path);
+        let result = T::new(&path, schema)?;
+        Ok(result)
     }
 }
 
-impl<T: FileLineWriter> LineWriter for MultiFileWriter<T> {
+impl<T: FileLineWriter> LineWriter for MultiFileLineWriter<T> {
     fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         let writer = self.get_form_writer(&line.schema)?;
         writer.write_line(line)
