@@ -4,30 +4,35 @@ use crate::form::FormSchema;
 use serde_json::Value;
 use std::sync::Mutex;
 
-/// Lookup a schema given the .FEC file version and the form type.
-pub fn lookup_schema(version: &String, form_type: &String) -> Result<&'static FormSchema, String> {
-    let key = (version.clone(), form_type.clone());
+/// Lookup a schema given the .FEC file version and the line code.
+pub fn lookup_schema(version: &String, line_code: &String) -> Result<&'static FormSchema, String> {
+    let key = (version.clone(), line_code.clone());
     if let Some(schema) = CACHE.lock().unwrap().get(&key) {
         return Ok(schema);
     }
-    let schema = do_lookup(version, form_type)?;
+    let schema = do_lookup(version, line_code)?;
     CACHE.lock().unwrap().insert(key, schema);
     Ok(schema)
 }
 
-fn do_lookup(version: &String, form_type: &String) -> Result<&'static FormSchema, String> {
-    for (form_regex, versions_and_schemas) in MAPPINGS.iter() {
-        log::debug!("form_regex: {}", form_regex);
-        if !form_regex.is_match(form_type) {
+fn do_lookup(version: &String, line_code: &String) -> Result<&'static FormSchema, String> {
+    log::debug!(
+        "looking up schema for version: '{}', line_code: '{}'",
+        version,
+        line_code
+    );
+    for (line_code_regex, versions_and_schemas) in MAPPINGS.iter() {
+        if !line_code_regex.is_match(line_code) {
             continue;
         }
+        log::debug!("matched line code regex: {:?}", line_code_regex);
         for (version_regex, fields) in versions_and_schemas {
-            log::debug!("version_regex: {}", version_regex);
             if !version_regex.is_match(version) {
                 continue;
             }
-            log::debug!("fields: {:?}", fields);
+            log::debug!("matched version regex: {:?}", version_regex);
             let mut field_schemas = Vec::new();
+            // TODO: Look up the types in types.json
             for field_name in fields {
                 field_schemas.push(crate::form::FieldSchema {
                     name: field_name.clone(),
@@ -35,15 +40,18 @@ fn do_lookup(version: &String, form_type: &String) -> Result<&'static FormSchema
                 });
             }
             let schema = FormSchema {
-                name: form_type.clone(),
+                name: line_code.clone(),
                 fields: field_schemas,
             };
+            log::debug!("found schema: {:?}", schema);
+
+            // We should only do this once for each schema, so we can leak the Box.
             return Ok(Box::leak(Box::new(schema)));
         }
     }
     Err(format!(
         "Couldn't find schema for form type: {}, version: {}",
-        form_type, version
+        line_code, version
     ))
 }
 
@@ -55,11 +63,6 @@ lazy_static! {
 
 type VersionRegex = regex::Regex;
 type FormRegex = regex::Regex;
-
-// fn load_from_json() -> Vec<(FormRegex, Vec<(VersionRegex, &'static FormSchema)>)> {
-//     let mappings = load_mappings();
-//     mappings
-// }
 
 fn load_mappings() -> Vec<(FormRegex, Vec<(VersionRegex, Vec<String>)>)> {
     let mappings_str = include_str!("mappings.json");
