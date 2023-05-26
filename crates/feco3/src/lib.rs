@@ -4,9 +4,9 @@ use std::path::PathBuf;
 
 use crate::writers::base::Writer;
 
+pub mod fec;
 pub mod header;
 pub mod line;
-pub mod parser;
 mod schemas;
 mod summary;
 pub mod writers;
@@ -18,9 +18,7 @@ pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<d
     // TODO Figure out how to reconfigure this, since currently
     // it only configures it on the first call and then never again.
     let file = File::open(fec_path)?;
-    let mut parser = parser::Parser::from_reader(file);
-    parser.parse_header()?;
-
+    let mut parser = fec::FecFile::from_reader(file);
     let mut writer = writers::csv::CSVFileWriter::new(out_dir);
     while let Some(line) = parser.next_line()? {
         writer.write_form_line(&line?)?;

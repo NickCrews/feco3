@@ -9,7 +9,7 @@ use std::{
     io::{BufReader, Read},
 };
 
-use crate::{line::parse, parser::Sep};
+use crate::{fec::Sep, line::parse};
 use bytelines::ByteLines;
 use std::result::Result;
 

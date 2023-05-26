@@ -2,7 +2,7 @@ use std::io::Read;
 use std::mem::take;
 use std::str::{from_utf8, Utf8Error};
 
-use crate::header::{parse_header, HeaderParseError, HeaderParsing};
+use crate::header::{parse_header, Header, HeaderParseError};
 use crate::line::{parse, Line};
 use crate::summary::Summary;
 // use csv::Reader;
@@ -35,33 +35,42 @@ impl Sep {
     }
 }
 
-pub struct Parser<R: Read> {
-    /// If parsed yet, contains the header
-    pub header_parsing: Option<HeaderParsing>,
+pub struct FecFile<R: Read> {
     /// The source of raw bytes
     reader: Option<R>,
+    header: Option<Header>,
+    sep: Option<Sep>,
     /// After reading the header, this contains the CSV reader
     /// that will be used to read the rest of the file.
     row_parser: Option<RowsParser<R>>,
 }
 
-impl<R: Read> Parser<R> {
+impl<R: Read> FecFile<R> {
     pub fn from_reader(reader: R) -> Self {
         Self {
             reader: Some(reader),
-            header_parsing: None,
+            header: None,
+            sep: None,
             row_parser: None,
         }
     }
 
-    pub fn parse_header(&mut self) -> Result<&HeaderParsing, HeaderParseError> {
+    pub fn get_header(&mut self) -> Result<Header, HeaderParseError> {
+        self.parse_header()?;
+        Ok(self.header.clone().unwrap())
+    }
+
+    fn parse_header(&mut self) -> Result<(), HeaderParseError> {
+        if self.header.is_some() {
+            return Ok(());
+        }
         if self.reader.is_none() {
             panic!("No reader")
         }
         let header_parsing = parse_header(self.reader.as_mut().unwrap())?;
-        self.header_parsing = Some(header_parsing);
-        let result = self.header_parsing.as_ref().unwrap();
-        Ok(result)
+        self.header = Some(header_parsing.header.clone());
+        self.sep = Some(header_parsing.sep.clone());
+        Ok(())
     }
 
     pub fn parse_summary(&mut self) -> Result<Summary, String> {
@@ -69,17 +78,15 @@ impl<R: Read> Parser<R> {
     }
 
     pub fn next_line(&mut self) -> Result<Option<Result<Line, String>>, String> {
+        self.parse_header().map_err(|e| e.to_string())?;
+        let header = self.header.as_ref().expect("No header");
+        let sep = self.sep.as_ref().expect("No sep");
         if self.row_parser.is_none() {
             // Hand off the reader ownership to the row parser.
             let reader = take(&mut self.reader).ok_or("No reader")?;
-            let hp = self.header_parsing.as_ref().ok_or("No header")?;
-            self.row_parser = Some(RowsParser::new(
-                reader,
-                hp.header.fec_version.clone(),
-                &hp.sep,
-            ));
+            self.row_parser = Some(RowsParser::new(reader, header.fec_version.clone(), &sep));
         }
-        let rp = self.row_parser.as_mut().ok_or("No row parser")?;
+        let rp = self.row_parser.as_mut().expect("No row parser");
         let line = rp.next_line();
         Ok(line)
     }
