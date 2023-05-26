@@ -37,13 +37,8 @@ impl<W: std::io::Write> CSVFormWriter<W> {
 impl<W: std::io::Write> FormWriter for CSVFormWriter<W> {
     fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         self.maybe_write_header()?;
-        let string_values = line.values.iter().map(|v| match v.clone() {
-            crate::line::Value::String(s) => s,
-            crate::line::Value::Float(f) => f.to_string(),
-            crate::line::Value::Date(d) => d.to_string(),
-            crate::line::Value::Integer(i) => i.to_string(),
-            crate::line::Value::Boolean(b) => b.to_string(),
-        });
+        // TODO: Check the length of values vs the schema
+        let string_values = line.values.iter().map(|v| v.to_string());
         self.csv_writer.write_record(string_values)?;
         Ok(())
     }

@@ -11,6 +11,18 @@ pub enum Value {
     Boolean(bool),
 }
 
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Value::String(s) => write!(f, "{}", s),
+            Value::Integer(i) => write!(f, "{}", i),
+            Value::Float(fl) => write!(f, "{}", fl),
+            Value::Date(d) => write!(f, "{}", d),
+            Value::Boolean(b) => write!(f, "{}", b),
+        }
+    }
+}
+
 /// Similar to Value, but just store the type of the value, not the value itself.
 #[derive(Debug, Clone, Copy)]
 pub enum ValueType {
