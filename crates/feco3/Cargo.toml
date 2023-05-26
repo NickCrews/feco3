@@ -1,13 +1,13 @@
 [package]
 name = "feco3"
 version = "0.1.0"
-edition = "2021"
 license = "Apache-2.0"
 description = "A library for working with FEC data"
 readme = "README.md"
-homepage = "https://github.com/NickCrews/feco3"
-documentation = "https://github.com/NickCrews/feco3"
-repository = "https://github.com/NickCrews/feco3"
+edition = {workspace = true}
+homepage = {workspace = true}
+documentation = {workspace = true}
+repository = {workspace = true}
 
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

@@ -18,7 +18,3 @@ python-packages = ["feco3", "_feco3"]
 python-source = "python"
 features = ["pyo3/extension-module"]
 strip = true
-# exclude = [
-#   "crates/ruff/resources/test/fixtures/**/*",
-#   "crates/ruff/src/rules/*/snapshots/**/*"
-# ]
