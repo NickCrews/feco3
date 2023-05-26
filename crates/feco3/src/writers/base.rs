@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::form::{Line, LineSchema};
+use crate::line::{Line, LineSchema};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 pub trait FormWriter {

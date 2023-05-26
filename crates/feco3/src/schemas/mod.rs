@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::form::LineSchema;
+use crate::line::LineSchema;
 use serde_json::Value;
 use std::sync::Mutex;
 
@@ -39,9 +39,9 @@ fn do_lookup(version: &String, line_code: &String) -> Result<&'static LineSchema
             let mut field_schemas = Vec::new();
             // TODO: Look up the types in types.json
             for field_name in fields {
-                field_schemas.push(crate::form::FieldSchema {
+                field_schemas.push(crate::line::FieldSchema {
                     name: field_name.clone(),
-                    typ: crate::form::ValueType::String,
+                    typ: crate::line::ValueType::String,
                 });
             }
             let schema = LineSchema {

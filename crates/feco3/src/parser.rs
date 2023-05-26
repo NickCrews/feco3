@@ -1,8 +1,8 @@
 use std::io::Read;
 use std::mem::take;
 
-use crate::form::{FieldSchema, Line, ValueType};
 use crate::header::{parse_header, HeaderParseError, HeaderParsing};
+use crate::line::{FieldSchema, Line, ValueType};
 use crate::schemas::lookup_schema;
 use crate::summary::Summary;
 // use csv::Reader;
@@ -138,7 +138,7 @@ impl<R: Read> RowsParser<R> {
 fn parse_raw_field_val(
     raw_value: &[u8],
     field_schema: Option<&FieldSchema>,
-) -> Result<crate::form::Value, String> {
+) -> Result<crate::line::Value, String> {
     let s = String::from_utf8_lossy(raw_value).to_string();
     let default_field_schema = FieldSchema {
         name: "extra".to_string(),
@@ -146,19 +146,19 @@ fn parse_raw_field_val(
     };
     let field_schema = field_schema.unwrap_or(&default_field_schema);
     let parsed_val = match field_schema.typ {
-        crate::form::ValueType::String => crate::form::Value::String(s),
-        crate::form::ValueType::Integer => {
+        crate::line::ValueType::String => crate::line::Value::String(s),
+        crate::line::ValueType::Integer => {
             let i = s.parse::<i64>().map_err(|e| e.to_string())?;
-            crate::form::Value::Integer(i)
+            crate::line::Value::Integer(i)
         }
-        crate::form::ValueType::Float => {
+        crate::line::ValueType::Float => {
             let f = s.parse::<f64>().map_err(|e| e.to_string())?;
-            crate::form::Value::Float(f)
+            crate::line::Value::Float(f)
         }
-        crate::form::ValueType::Date => crate::form::Value::Date(s),
-        crate::form::ValueType::Boolean => {
+        crate::line::ValueType::Date => crate::line::Value::Date(s),
+        crate::line::ValueType::Boolean => {
             let b = s.parse::<bool>().map_err(|e| e.to_string())?;
-            crate::form::Value::Boolean(b)
+            crate::line::Value::Boolean(b)
         }
     };
     Ok(parsed_val)
