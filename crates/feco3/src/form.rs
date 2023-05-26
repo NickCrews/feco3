@@ -20,23 +20,15 @@ pub enum ValueType {
 }
 
 #[derive(Debug, Clone)]
-pub struct Field {
-    pub name: String,
-    pub value: Value,
-}
-
-/// Similar to Field, but don't actually store the values of the fields,
-/// just their types.
-#[derive(Debug, Clone)]
 pub struct FieldSchema {
     pub name: String,
     pub typ: ValueType,
 }
 
 #[derive(Debug, Clone)]
-pub struct FormLine {
-    pub form_schema: LineSchema,
-    pub fields: Vec<Field>,
+pub struct Line {
+    pub schema: LineSchema,
+    pub values: Vec<Value>,
 }
 
 #[derive(Debug, Clone)]

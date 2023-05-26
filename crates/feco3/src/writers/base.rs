@@ -6,11 +6,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::form::{FormLine, LineSchema};
+use crate::form::{Line, LineSchema};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 pub trait FormWriter {
-    fn write_line(&mut self, line: &FormLine) -> std::io::Result<()>;
+    fn write_line(&mut self, line: &Line) -> std::io::Result<()>;
 }
 
 pub trait FileFormWriter: FormWriter {
@@ -35,7 +35,7 @@ pub fn norm_form_name(name: &str) -> String {
 }
 
 pub trait Writer {
-    fn write_form_line(&mut self, line: &FormLine) -> std::io::Result<()>;
+    fn write_form_line(&mut self, line: &Line) -> std::io::Result<()>;
 }
 
 pub struct FileWriter<T: FileFormWriter> {
@@ -62,8 +62,8 @@ impl<T: FileFormWriter> FileWriter<T> {
 }
 
 impl<T: FileFormWriter> Writer for FileWriter<T> {
-    fn write_form_line(&mut self, line: &FormLine) -> std::io::Result<()> {
-        let writer = self.get_form_writer(&line.form_schema)?;
+    fn write_form_line(&mut self, line: &Line) -> std::io::Result<()> {
+        let writer = self.get_form_writer(&line.schema)?;
         writer.write_line(line)
     }
 }

@@ -1,5 +1,5 @@
 use super::base::{FileFormWriter, FileWriter, FormWriter};
-use crate::form::{FormLine, LineSchema};
+use crate::form::{Line, LineSchema};
 use std::{fs::File, path::Path};
 
 pub struct CSVFormWriter<W: std::io::Write> {
@@ -35,19 +35,15 @@ impl<W: std::io::Write> CSVFormWriter<W> {
 }
 
 impl<W: std::io::Write> FormWriter for CSVFormWriter<W> {
-    fn write_line(&mut self, line: &FormLine) -> std::io::Result<()> {
+    fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         self.maybe_write_header()?;
-        let string_values = line
-            .fields
-            .iter()
-            .map(|f| f.value.clone())
-            .map(|v| match v {
-                crate::form::Value::String(s) => s,
-                crate::form::Value::Integer(i) => i.to_string(),
-                crate::form::Value::Float(f) => f.to_string(),
-                crate::form::Value::Date(d) => d.to_string(),
-                crate::form::Value::Boolean(b) => b.to_string(),
-            });
+        let string_values = line.values.iter().map(|v| match v.clone() {
+            crate::form::Value::String(s) => s,
+            crate::form::Value::Float(f) => f.to_string(),
+            crate::form::Value::Date(d) => d.to_string(),
+            crate::form::Value::Integer(i) => i.to_string(),
+            crate::form::Value::Boolean(b) => b.to_string(),
+        });
         self.csv_writer.write_record(string_values)?;
         Ok(())
     }
@@ -56,7 +52,7 @@ impl<W: std::io::Write> FormWriter for CSVFormWriter<W> {
 pub struct CSVFileFormWriter(CSVFormWriter<File>);
 
 impl FormWriter for CSVFileFormWriter {
-    fn write_line(&mut self, line: &FormLine) -> std::io::Result<()> {
+    fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         self.0.write_line(line)
     }
 }
