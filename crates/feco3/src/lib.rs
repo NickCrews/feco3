@@ -19,8 +19,6 @@ use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
 
-use crate::writers::base::Writer;
-
 pub mod fec;
 pub mod header;
 pub mod line;
@@ -34,9 +32,9 @@ extern crate lazy_static;
 pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<dyn Error>> {
     let file = File::open(fec_path)?;
     let mut fec = fec::FecFile::from_reader(file);
-    let mut writer = writers::csv::CSVFileWriter::new(out_dir);
+    let mut writer = writers::csv::CSVMultiFileWriter::new(out_dir);
     while let Some(line) = fec.next_line()? {
-        writer.write_form_line(&line?)?;
+        writers::base::LineWriter::write_line(&mut writer, &line?)?;
     }
     Ok(())
 }

@@ -1,14 +1,15 @@
-use super::base::{FileLineWriter, FileWriter, LineWriter};
+use super::base::{FileLineWriter, LineWriter, MultiFileWriter};
 use crate::line::{Line, LineSchema};
 use std::{fs::File, path::Path};
 
-pub struct CSVFormWriter<W: std::io::Write> {
+/// A [LineWriter] that writes to CSV format.
+pub struct CSVLineWriter<W: std::io::Write> {
     csv_writer: csv::Writer<W>,
     schema: LineSchema,
     has_written_header: bool,
 }
 
-impl<W: std::io::Write> CSVFormWriter<W> {
+impl<W: std::io::Write> CSVLineWriter<W> {
     pub fn new(raw_writer: W, schema: &LineSchema) -> Self {
         let writer = csv::WriterBuilder::new()
             .has_headers(false) // We'll write the header ourselves
@@ -34,7 +35,7 @@ impl<W: std::io::Write> CSVFormWriter<W> {
     }
 }
 
-impl<W: std::io::Write> LineWriter for CSVFormWriter<W> {
+impl<W: std::io::Write> LineWriter for CSVLineWriter<W> {
     fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         self.maybe_write_header()?;
         // TODO: Check the length of values vs the schema
@@ -44,24 +45,20 @@ impl<W: std::io::Write> LineWriter for CSVFormWriter<W> {
     }
 }
 
-pub struct CSVFileFormWriter(CSVFormWriter<File>);
+/// A [CSVLineWriter] that writes to a file.
+pub type CSVFileLineWriter = CSVLineWriter<File>;
 
-impl LineWriter for CSVFileFormWriter {
-    fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
-        self.0.write_line(line)
-    }
-}
-
-impl FileLineWriter for CSVFileFormWriter {
+impl FileLineWriter for CSVFileLineWriter {
     fn file_name(form_name: String) -> String {
         format!("{}.csv", form_name)
     }
 
     fn new(path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>> {
         let file = File::create(path)?;
-        let writer = CSVFormWriter::new(file, schema);
-        Ok(Box::new(Self(writer)))
+        let writer = CSVLineWriter::new(file, schema);
+        Ok(Box::new(writer))
     }
 }
 
-pub type CSVFileWriter = FileWriter<CSVFileFormWriter>;
+/// A [MultiFileWriter] that writes to CSV files.
+pub type CSVMultiFileWriter = MultiFileWriter<CSVFileLineWriter>;

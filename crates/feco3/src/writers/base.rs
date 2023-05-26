@@ -20,7 +20,7 @@ pub trait FileLineWriter: LineWriter {
     fn new(path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>>;
 
     fn new_in_dir(base_path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>> {
-        let form_name = norm_form_name(&schema.code);
+        let form_name = Self::norm_form_name(&schema.code);
         let file_name = Self::file_name(form_name);
         let path = base_path.join(file_name);
         log::debug!("Creating base dir at: {:?}", base_path);
@@ -29,24 +29,20 @@ pub trait FileLineWriter: LineWriter {
         let result = Self::new(&path, schema)?;
         Ok(result)
     }
+
+    /// Some forms have a slash in their name, which is not allowed in file names.
+    fn norm_form_name(name: &str) -> String {
+        name.replace("/", "-")
+    }
 }
 
-/// Some forms have a slash in their name, which is not allowed in file names.
-pub fn norm_form_name(name: &str) -> String {
-    name.replace("/", "-")
-}
-
-pub trait Writer {
-    fn write_form_line(&mut self, line: &Line) -> std::io::Result<()>;
-}
-
-/// A [Writer] that writes to a directory, each form to its own file.
-pub struct FileWriter<T: FileLineWriter> {
+/// A [LineWriter] that writes to a directory, each form to its own file.
+pub struct MultiFileWriter<T: FileLineWriter> {
     base_path: PathBuf,
     writers: HashMap<LineSchema, T>,
 }
 
-impl<T: FileLineWriter> FileWriter<T> {
+impl<T: FileLineWriter> MultiFileWriter<T> {
     pub fn new(base_path: PathBuf) -> Self {
         Self {
             base_path: base_path,
@@ -64,8 +60,8 @@ impl<T: FileLineWriter> FileWriter<T> {
     }
 }
 
-impl<T: FileLineWriter> Writer for FileWriter<T> {
-    fn write_form_line(&mut self, line: &Line) -> std::io::Result<()> {
+impl<T: FileLineWriter> LineWriter for MultiFileWriter<T> {
+    fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         let writer = self.get_form_writer(&line.schema)?;
         writer.write_line(line)
     }
