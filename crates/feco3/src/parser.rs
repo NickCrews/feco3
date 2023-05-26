@@ -24,10 +24,10 @@ impl Sep {
         }
     }
 
-    /// Detect the separator from a slice of bytes.
+    /// Detect the separator from a string.
     /// If the slice contains b'\x1c', return Ascii28.
-    pub fn detect(bytes: &[u8]) -> Self {
-        if bytes.contains(&Self::Ascii28.to_byte()) {
+    pub fn detect(s: &String) -> Self {
+        if s.contains('\x1c') {
             Self::Ascii28
         } else {
             Self::Comma
