@@ -6,7 +6,7 @@ description = "A library for working with FEC data"
 readme = "README.md"
 edition = {workspace = true}
 homepage = {workspace = true}
-documentation = {workspace = true}
+documentation = "https://docs.rs/feco3"
 repository = {workspace = true}
 
 # https://doc.rust-lang.org/cargo/reference/manifest.html
