@@ -1,15 +1,15 @@
 use super::base::{FileFormWriter, FileWriter, FormWriter};
-use crate::form::{FormLine, FormSchema};
+use crate::form::{FormLine, LineSchema};
 use std::{fs::File, path::Path};
 
 pub struct CSVFormWriter<W: std::io::Write> {
     csv_writer: csv::Writer<W>,
-    schema: FormSchema,
+    schema: LineSchema,
     has_written_header: bool,
 }
 
 impl<W: std::io::Write> CSVFormWriter<W> {
-    pub fn new(raw_writer: W, schema: &FormSchema) -> Self {
+    pub fn new(raw_writer: W, schema: &LineSchema) -> Self {
         let writer = csv::WriterBuilder::new()
             .has_headers(false) // We'll write the header ourselves
             .flexible(true)
@@ -66,7 +66,7 @@ impl FileFormWriter for CSVFileFormWriter {
         format!("{}.csv", form_name)
     }
 
-    fn new(path: &Path, schema: &FormSchema) -> std::io::Result<Box<Self>> {
+    fn new(path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>> {
         let file = File::create(path)?;
         let writer = CSVFormWriter::new(file, schema);
         Ok(Box::new(Self(writer)))

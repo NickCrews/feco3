@@ -1,11 +1,16 @@
 use std::collections::HashMap;
 
-use crate::form::FormSchema;
+use crate::form::LineSchema;
 use serde_json::Value;
 use std::sync::Mutex;
 
-/// Lookup a schema given the .FEC file version and the line code.
-pub fn lookup_schema(version: &String, line_code: &String) -> Result<&'static FormSchema, String> {
+/// Lookup a LineSchema given the .FEC file version and the line code.
+///
+/// The version is the version of the .FEC file format, like "8.0".
+/// This is found in the header of the .FEC file.
+/// The line code is the first field in each line of the .FEC file.
+/// It is a string like "F3" or "SA11".
+pub fn lookup_schema(version: &String, line_code: &String) -> Result<&'static LineSchema, String> {
     let key = (version.clone(), line_code.clone());
     if let Some(schema) = CACHE.lock().unwrap().get(&key) {
         return Ok(schema);
@@ -15,7 +20,7 @@ pub fn lookup_schema(version: &String, line_code: &String) -> Result<&'static Fo
     Ok(schema)
 }
 
-fn do_lookup(version: &String, line_code: &String) -> Result<&'static FormSchema, String> {
+fn do_lookup(version: &String, line_code: &String) -> Result<&'static LineSchema, String> {
     log::debug!(
         "looking up schema for version: '{}', line_code: '{}'",
         version,
@@ -39,8 +44,8 @@ fn do_lookup(version: &String, line_code: &String) -> Result<&'static FormSchema
                     typ: crate::form::ValueType::String,
                 });
             }
-            let schema = FormSchema {
-                name: line_code.clone(),
+            let schema = LineSchema {
+                code: line_code.clone(),
                 fields: field_schemas,
             };
             log::debug!("found schema: {:?}", schema);
@@ -56,7 +61,7 @@ fn do_lookup(version: &String, line_code: &String) -> Result<&'static FormSchema
 }
 
 lazy_static! {
-    static ref CACHE: Mutex<HashMap<(String, String), &'static FormSchema>> =
+    static ref CACHE: Mutex<HashMap<(String, String), &'static LineSchema>> =
         Mutex::new(HashMap::new());
     static ref MAPPINGS: Vec<(FormRegex, Vec<(VersionRegex, Vec<String>)>)> = load_mappings();
 }

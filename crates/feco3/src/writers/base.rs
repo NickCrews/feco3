@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::form::{FormLine, FormSchema};
+use crate::form::{FormLine, LineSchema};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 pub trait FormWriter {
@@ -15,10 +15,10 @@ pub trait FormWriter {
 
 pub trait FileFormWriter: FormWriter {
     fn file_name(form_name: String) -> String;
-    fn new(path: &Path, schema: &FormSchema) -> std::io::Result<Box<Self>>;
+    fn new(path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>>;
 
-    fn new_in_dir(base_path: &Path, schema: &FormSchema) -> std::io::Result<Box<Self>> {
-        let form_name = norm_form_name(&schema.name);
+    fn new_in_dir(base_path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>> {
+        let form_name = norm_form_name(&schema.code);
         let file_name = Self::file_name(form_name);
         let path = base_path.join(file_name);
         log::debug!("Creating base dir at: {:?}", base_path);
@@ -40,7 +40,7 @@ pub trait Writer {
 
 pub struct FileWriter<T: FileFormWriter> {
     base_path: PathBuf,
-    writers: HashMap<FormSchema, T>,
+    writers: HashMap<LineSchema, T>,
 }
 
 impl<T: FileFormWriter> FileWriter<T> {
@@ -53,7 +53,7 @@ impl<T: FileFormWriter> FileWriter<T> {
 
     // https://users.rust-lang.org/t/issue-with-hashmap-and-fallible-update/44960/8
     /// Get the existing form writer for a schema, or create a new one if it doesn't exist.
-    fn get_form_writer(&mut self, schema: &FormSchema) -> std::io::Result<&mut T> {
+    fn get_form_writer(&mut self, schema: &LineSchema) -> std::io::Result<&mut T> {
         Ok(match self.writers.entry(schema.clone()) {
             Occupied(e) => e.into_mut(),
             Vacant(e) => e.insert(*T::new_in_dir(&self.base_path, schema)?),

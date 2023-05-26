@@ -15,7 +15,7 @@ Please open an issue or PR if you'd like to add or edit this list.
 - [Fech](https://github.com/dwillis/Fech)
   Ruby downloader and parser. Moderately recently maintained?
 - [fech-sources](https://github.com/dwillis/fech-sources)
-  Schema definitions for the various form types. Used by Fech and some other parsers.
+  Schema definitions for the various line codes. Used by Fech and some other parsers.
 - [nyt-pyfec](https://github.com/newsdev/nyt-pyfec)
   Old, unmaintained python parser
 - [fec2json](https://github.com/newsdev/fec2json)

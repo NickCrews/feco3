@@ -35,27 +35,27 @@ pub struct FieldSchema {
 
 #[derive(Debug, Clone)]
 pub struct FormLine {
-    pub form_schema: FormSchema,
+    pub form_schema: LineSchema,
     pub fields: Vec<Field>,
 }
 
 #[derive(Debug, Clone)]
-pub struct FormSchema {
-    /// Name of the form type, eg "F3" or "SA11"
-    pub name: String,
+pub struct LineSchema {
+    /// Line code, eg "F3" or "SA11"
+    pub code: String,
     pub fields: Vec<FieldSchema>,
 }
 
-impl Hash for FormSchema {
+impl Hash for LineSchema {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.name.hash(state)
+        self.code.hash(state)
     }
 }
 
-impl PartialEq for FormSchema {
+impl PartialEq for LineSchema {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.code == other.code
     }
 }
 
-impl Eq for FormSchema {}
+impl Eq for LineSchema {}

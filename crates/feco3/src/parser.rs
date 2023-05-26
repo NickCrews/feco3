@@ -101,27 +101,26 @@ impl<R: Read> RowsParser<R> {
     }
 
     fn next_line(&mut self) -> Option<Result<FormLine, String>> {
-        let raw_record = self.records.next();
-        log::debug!("raw_record: {:?}", raw_record);
-        let record_or_error = raw_record?.map_err(|e| e.to_string());
-        let record = match record_or_error {
+        let record_or_err: Result<csv::ByteRecord, csv::Error> = self.records.next()?;
+        log::debug!("raw_record: {:?}", record_or_err);
+        let record: csv::ByteRecord = match record_or_err {
             Ok(record) => record,
-            Err(e) => return Some(Err(e)),
+            Err(e) => return Some(Err(e.to_string())),
         };
         Some(self.parse_csv_record(record))
     }
 
     fn parse_csv_record(&self, record: csv::ByteRecord) -> Result<FormLine, String> {
         let mut record_fields = record.iter();
-        let form_name = match record_fields.next() {
+        let line_code = match record_fields.next() {
             Some(form_name) => form_name,
             None => return Err("No form name".to_string()),
         };
-        let form_name_str = String::from_utf8(form_name.to_vec()).map_err(|e| e.to_string())?;
-        let form_schema = lookup_schema(&self.version, &form_name_str)?;
+        let line_code_str = String::from_utf8(line_code.to_vec()).map_err(|e| e.to_string())?;
+        let form_schema = lookup_schema(&self.version, &line_code_str)?;
         let mut schema_fields = form_schema.fields.iter();
         let mut fields = Vec::new();
-        fields.push(parse_raw_field_val(form_name, None)?);
+        fields.push(parse_raw_field_val(line_code, None)?);
         for raw_value in record_fields {
             fields.push(parse_raw_field_val(raw_value, schema_fields.next())?);
         }
