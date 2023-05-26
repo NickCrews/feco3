@@ -1,4 +1,4 @@
-use super::base::{FileFormWriter, FileWriter, FormWriter};
+use super::base::{FileLineWriter, FileWriter, LineWriter};
 use crate::line::{Line, LineSchema};
 use std::{fs::File, path::Path};
 
@@ -34,7 +34,7 @@ impl<W: std::io::Write> CSVFormWriter<W> {
     }
 }
 
-impl<W: std::io::Write> FormWriter for CSVFormWriter<W> {
+impl<W: std::io::Write> LineWriter for CSVFormWriter<W> {
     fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         self.maybe_write_header()?;
         // TODO: Check the length of values vs the schema
@@ -46,13 +46,13 @@ impl<W: std::io::Write> FormWriter for CSVFormWriter<W> {
 
 pub struct CSVFileFormWriter(CSVFormWriter<File>);
 
-impl FormWriter for CSVFileFormWriter {
+impl LineWriter for CSVFileFormWriter {
     fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
         self.0.write_line(line)
     }
 }
 
-impl FileFormWriter for CSVFileFormWriter {
+impl FileLineWriter for CSVFileFormWriter {
     fn file_name(form_name: String) -> String {
         format!("{}.csv", form_name)
     }

@@ -9,11 +9,13 @@ use std::{
 use crate::line::{Line, LineSchema};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
-pub trait FormWriter {
+/// Writes single itemization lines.
+pub trait LineWriter {
     fn write_line(&mut self, line: &Line) -> std::io::Result<()>;
 }
 
-pub trait FileFormWriter: FormWriter {
+/// A specialization of [LineWriter] that writes to a file.
+pub trait FileLineWriter: LineWriter {
     fn file_name(form_name: String) -> String;
     fn new(path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>>;
 
@@ -38,12 +40,13 @@ pub trait Writer {
     fn write_form_line(&mut self, line: &Line) -> std::io::Result<()>;
 }
 
-pub struct FileWriter<T: FileFormWriter> {
+/// A [Writer] that writes to a directory, each form to its own file.
+pub struct FileWriter<T: FileLineWriter> {
     base_path: PathBuf,
     writers: HashMap<LineSchema, T>,
 }
 
-impl<T: FileFormWriter> FileWriter<T> {
+impl<T: FileLineWriter> FileWriter<T> {
     pub fn new(base_path: PathBuf) -> Self {
         Self {
             base_path: base_path,
@@ -61,7 +64,7 @@ impl<T: FileFormWriter> FileWriter<T> {
     }
 }
 
-impl<T: FileFormWriter> Writer for FileWriter<T> {
+impl<T: FileLineWriter> Writer for FileWriter<T> {
     fn write_form_line(&mut self, line: &Line) -> std::io::Result<()> {
         let writer = self.get_form_writer(&line.schema)?;
         writer.write_line(line)

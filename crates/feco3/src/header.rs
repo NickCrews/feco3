@@ -55,7 +55,7 @@ pub struct HeaderParsing {
 
 type Lines<R> = bytelines::ByteLinesIter<BufReader<R>>;
 
-// Read from src and parse the header.
+/// Read from src and parse the header.
 pub fn parse_header(src: &mut impl Read) -> Result<HeaderParsing, HeaderParseError> {
     // Only buffer one character at a time so that we don't over-consume
     // the src. As soon as we see every line of the header, we want to stop

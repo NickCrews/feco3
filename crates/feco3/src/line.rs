@@ -40,6 +40,7 @@ pub struct FieldSchema {
     pub typ: ValueType,
 }
 
+/// A parsed line of a .FEC file.
 #[derive(Debug, Clone)]
 pub struct Line {
     pub schema: LineSchema,
