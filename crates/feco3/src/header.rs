@@ -5,7 +5,6 @@ use std::{
 
 use crate::parser::Sep;
 use bytelines::ByteLines;
-use regex::bytes;
 
 #[derive(Debug, Default, Clone)]
 pub struct Header {
@@ -21,7 +20,11 @@ pub struct HeaderParseError {
 
 impl fmt::Display for HeaderParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "HeaderParseError: {:?}", self.read)
+        write!(
+            f,
+            "HeaderParseError: {:?}",
+            String::from_utf8_lossy(&self.read)
+        )
     }
 }
 
@@ -43,12 +46,12 @@ pub fn parse_header(src: &mut impl Read) -> Result {
     // the src. As soon as we see every line of the header, we want to stop
     // reading so the rest of src can be used by the RowsParser.
     let mut lines = ByteLines::new(BufReader::with_capacity(1, src)).into_iter();
-    let mut read_lines = Vec::new();
-    let first_line = next_line(&mut read_lines, &mut lines)?;
+    let mut read_bytes = Vec::new();
+    let first_line = next_line(&mut read_bytes, &mut lines)?;
 
     // If the first line contains "/*", its a legacy header.
     if byte_slice_contains(first_line.as_slice(), b"/*") {
-        parse_legacy_header(&mut lines, &mut read_lines)
+        parse_legacy_header(&mut lines, &mut read_bytes)
     } else {
         parse_nonlegacy_header(&first_line)
     }
@@ -72,42 +75,44 @@ pub fn parse_header(src: &mut impl Read) -> Result {
 // SB29      = 00003
 // /* End Header
 // --- Other lines---
-fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8>>) -> Result {
+fn parse_legacy_header(lines: &mut Lines<impl Read>, read_bytes: &mut Vec<u8>) -> Result {
     log::debug!("parsing legacy header");
     // read from lines until we hit another "/*" or we've read 100 lines,
     // at which point we error
     let mut header = Header::default();
     let mut num_lines = 0;
     loop {
-        let line = next_line(read_lines, lines)?;
-        if byte_slice_contains(line.as_slice(), b"/*") {
+        let line_raw = next_line(read_bytes, lines)?;
+        let line = String::from_utf8_lossy(&line_raw).to_string();
+
+        if line.contains("/*") {
             break;
         }
         num_lines += 1;
         if num_lines > 100 {
             return Err(HeaderParseError {
-                read: read_lines.concat(),
+                read: read_bytes.clone(),
             });
         }
-        let parts: Vec<&[u8]> = line.split(|c| *c == b'=').collect();
-        if parts.len() != 2 {
-            return Err(HeaderParseError {
-                read: read_lines.concat(),
-            });
+        // TODO: parse the schedule counts like in
+        // https://github.com/esonderegger/fecfile/blob/a5ad9af6fc3b408acaf386871e608085f374441e/fecfile/fecparser.py#L134
+        if line.to_lowercase().contains("schedule_counts") {
+            continue;
         }
-        let key = parts[0];
-        let value = parts[1];
-        match norm_header_key(key).as_str() {
-            "fec_ver_#" => header.version = norm_header_value(value),
-            "soft_name" => header.software_name = norm_header_value(value),
-            "soft_ver#" => header.software_version = norm_header_value(value),
+        let (key, value) = parse_legacy_kv(&line).map_err(|_e| HeaderParseError {
+            read: read_bytes.clone(),
+        })?;
+        match key.as_str() {
+            "fec_ver_#" => header.version = value,
+            "soft_name" => header.software_name = value,
+            "soft_ver#" => header.software_version = value,
             _ => {}
         }
     }
     // Make sure we've found all the required fields.
     if header.version == "" || header.software_name == "" || header.software_version == "" {
         return Err(HeaderParseError {
-            read: read_lines.concat(),
+            read: read_bytes.clone(),
         });
     }
     Ok(HeaderParsing {
@@ -116,16 +121,22 @@ fn parse_legacy_header(lines: &mut Lines<impl Read>, read_lines: &mut Vec<Vec<u8
     })
 }
 
-fn norm_header_value(value: &[u8]) -> String {
-    bytes_to_string(value).as_str().trim().to_string()
+fn norm_header_value(value: &str) -> String {
+    value.trim().to_string()
 }
 
-fn norm_header_key(key: &[u8]) -> String {
-    bytes_to_string(key)
-        .to_lowercase()
-        .as_str()
-        .trim()
-        .to_string()
+fn norm_header_key(key: &str) -> String {
+    key.trim().to_string().to_lowercase()
+}
+
+fn parse_legacy_kv(line: &str) -> std::result::Result<(String, String), String> {
+    let parts = line.split('=').collect::<Vec<&str>>();
+    if parts.len() != 2 {
+        return Err(format!("invalid header k=v line: {:?}", line));
+    }
+    let key = parts[0];
+    let value = parts[1];
+    Ok((norm_header_key(key), norm_header_value(value)))
 }
 
 /// Parse the header from a non-legacy file.
@@ -167,7 +178,7 @@ fn parse_nonlegacy_header(line: &Vec<u8>) -> Result {
 
 ///Get the next line, return an error if we can't.
 fn next_line(
-    read_lines: &mut Vec<Vec<u8>>,
+    read_bytes: &mut Vec<u8>,
     lines: &mut Lines<impl Read>,
 ) -> std::result::Result<Vec<u8>, HeaderParseError> {
     let line = match lines.next() {
@@ -175,17 +186,18 @@ fn next_line(
         // We errored when reading a line.
         Some(Err(_e)) => {
             return Err(HeaderParseError {
-                read: read_lines.concat(),
+                read: read_bytes.clone(),
             })
         }
         // We didn't read a line, but we expected to.
         None => {
             return Err(HeaderParseError {
-                read: read_lines.concat(),
+                read: read_bytes.clone(),
             })
         }
     };
-    read_lines.push(line.clone());
+    read_bytes.push(b'\n');
+    read_bytes.extend_from_slice(&line);
     Ok(line)
 }
 
