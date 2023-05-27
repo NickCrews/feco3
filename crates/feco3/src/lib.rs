@@ -18,16 +18,21 @@
 use std::error::Error;
 use std::path::PathBuf;
 
+#[macro_use]
+extern crate lazy_static;
+
 mod cover;
 mod csv;
-pub mod fec;
-pub mod header;
-pub mod record;
+mod fec;
+mod header;
+mod record;
 mod schemas;
 pub mod writers;
 
-#[macro_use]
-extern crate lazy_static;
+pub use crate::cover::Cover;
+pub use crate::fec::FecFile;
+pub use crate::header::Header;
+pub use crate::record::Record;
 
 pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<dyn Error>> {
     let mut fec = fec::FecFile::from_path(fec_path)?;
