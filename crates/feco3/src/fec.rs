@@ -4,7 +4,7 @@ use std::mem::take;
 use crate::csv::{CsvParser, Sep};
 use crate::header::{parse_header, Header, HeaderParseError};
 use crate::line::Line;
-use crate::summary::Summary;
+use crate::summary::{parse_summary, Summary};
 
 /// A FEC file, the core data structure of this crate.
 ///
@@ -17,6 +17,7 @@ pub struct FecFile<R: Read> {
     /// The source of raw bytes
     reader: Option<R>,
     header: Option<Header>,
+    summary: Option<Summary>,
     sep: Option<Sep>,
     /// After reading the header, this contains the CSV reader
     /// that will be used to read the rest of the file.
@@ -28,6 +29,7 @@ impl<R: Read> FecFile<R> {
         Self {
             reader: Some(reader),
             header: None,
+            summary: None,
             sep: None,
             csv_parser: None,
         }
@@ -38,12 +40,14 @@ impl<R: Read> FecFile<R> {
         Ok(self.header.as_ref().expect("header should be set"))
     }
 
-    pub fn parse_summary(&mut self) -> Result<Summary, String> {
-        Err("Not implemented".to_string())
+    // TODO: should this not return a reference?
+    pub fn get_summary(&mut self) -> Result<&Summary, String> {
+        self.parse_summary()?;
+        Ok(self.summary.as_ref().expect("summary should be set"))
     }
 
     pub fn next_line(&mut self) -> Result<Option<Result<Line, String>>, String> {
-        self.make_csv_parser()?;
+        self.parse_summary()?;
         let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
         Ok(p.next_line())
     }
@@ -58,6 +62,22 @@ impl<R: Read> FecFile<R> {
         let header_parsing = parse_header(self.reader.as_mut().unwrap())?;
         self.header = Some(header_parsing.header.clone());
         self.sep = Some(header_parsing.sep.clone());
+        Ok(())
+    }
+
+    fn parse_summary(&mut self) -> Result<(), String> {
+        if self.summary.is_some() {
+            return Ok(());
+        }
+        self.make_csv_parser()?;
+        let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
+        let line = match p.next_line() {
+            None => return Err("No summary line".to_string()),
+            Some(Ok(line)) => line,
+            Some(Err(e)) => return Err(e),
+        };
+        let s = parse_summary(&line)?;
+        self.summary = Some(s);
         Ok(())
     }
 
