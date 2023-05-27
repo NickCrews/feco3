@@ -1,8 +1,10 @@
 //! Parse the header of a fec file.
 //!
-//! The header holds meta information on the filing itself.
-//! This includes the version of the FEC file format, the software used to
-//! generate the file, and the version of that software.
+//! The header holds meta information on the filing itself, such as
+//! the version of the FEC file format, and the software used to
+//! generate the file.
+//!
+//! The header contains
 
 use std::{
     fmt,
@@ -13,7 +15,11 @@ use crate::{fec::Sep, line::parse};
 use bytelines::ByteLines;
 use std::result::Result;
 
-/// See the "hdr" section of mappings.json to
+/// The header of a FEC file.
+///
+/// There might be other bits of information available,
+/// but currently we only parse this subset.
+/// See the "hdr" section of [mappings.json](mappings.json) to
 /// see where these fields come from.
 #[derive(Debug, Default, Clone)]
 pub struct Header {
