@@ -24,8 +24,8 @@ impl Sep {
 
     /// Detect the separator from a string.
     /// If the slice contains b'\x1c', return Ascii28.
-    pub fn detect(s: &str) -> Self {
-        if s.contains('\x1c') {
+    pub fn detect(s: &[u8]) -> Self {
+        if s.contains(&b'\x1c') {
             Self::Ascii28
         } else {
             Self::Comma

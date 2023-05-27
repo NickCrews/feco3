@@ -9,6 +9,7 @@
 use std::{
     fmt,
     io::{BufReader, Read},
+    str::{from_utf8, Utf8Error},
 };
 
 use crate::{csv::Sep, line::parse};
@@ -75,7 +76,7 @@ pub fn parse_header(src: &mut impl Read) -> Result<HeaderParsing, HeaderParseErr
 
     // If the first line contains "/*", its a legacy header.
     let header;
-    if first_line.contains("/*") {
+    if byte_slice_contains(&first_line, b"/*") {
         header = parse_legacy_header(&mut lines, &mut read_bytes)
     } else {
         header = parse_nonlegacy_header(&first_line)
@@ -115,14 +116,15 @@ fn parse_legacy_header(
     let mut num_lines = 0;
     let max_lines = 100;
     loop {
-        let line = next_line(read_bytes, lines)?;
-        if line.contains("/*") {
+        let line_bytes = next_line(read_bytes, lines)?;
+        if byte_slice_contains(&line_bytes, b"/*") {
             break;
         }
         num_lines += 1;
         if num_lines > max_lines {
             return Err(format!("more than {} lines in header", max_lines));
         }
+        let line = byte_slice_to_string(&line_bytes);
         // TODO: parse the schedule counts like in
         // https://github.com/esonderegger/fecfile/blob/a5ad9af6fc3b408acaf386871e608085f374441e/fecfile/fecparser.py#L134
         if line.to_lowercase().contains("schedule_counts") {
@@ -171,20 +173,22 @@ fn parse_legacy_kv(line: &str) -> std::result::Result<(String, String), String> 
 /// "HDRFEC8.3NGP8"
 /// or
 /// "HDR8.3NGP8"
-fn parse_nonlegacy_header(line: &str) -> Result<HeaderParsing, String> {
+fn parse_nonlegacy_header(line: &Vec<u8>) -> Result<HeaderParsing, String> {
     log::debug!("parsing non-legacy header");
     let mut header = Header::default();
     let sep = Sep::detect(line);
     log::debug!("separator: {:?}", sep);
-    let parts: Vec<&str> = line.split(&sep.to_byte().to_string()).collect();
+    let parts: Result<Vec<&str>, Utf8Error> =
+        line.split(|c| *c == sep.to_byte()).map(from_utf8).collect();
+    let parts = parts.map_err(|e| e.to_string())?;
 
     if parts.len() < 2 {
-        return Err("less than 2 parts in header".to_string());
+        return Err(format!("less than 2 parts in header: {:?}", parts));
     }
     let version = match parts[1] {
         "FEC" => {
             if parts.len() < 3 {
-                return Err("less than 3 parts in header".to_string());
+                return Err(format!("less than 3 parts in header: {:?}", parts));
             }
             parts[2]
         }
@@ -206,7 +210,7 @@ fn parse_nonlegacy_header(line: &str) -> Result<HeaderParsing, String> {
 fn next_line(
     read_bytes: &mut Vec<u8>,
     lines: &mut Lines<impl Read>,
-) -> Result<String, &'static str> {
+) -> Result<Vec<u8>, &'static str> {
     let line = match lines.next() {
         None => return Err("unexpected end of file"),
         Some(Ok(line)) => line,
@@ -216,5 +220,15 @@ fn next_line(
         read_bytes.push(b'\n');
     }
     read_bytes.extend_from_slice(&line);
-    Ok(String::from_utf8_lossy(&line).to_string())
+    Ok(line)
+}
+
+fn byte_slice_contains(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack
+        .windows(needle.len())
+        .any(|window| window == needle)
+}
+
+fn byte_slice_to_string(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).to_string()
 }
