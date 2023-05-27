@@ -1,10 +1,10 @@
 use std::io::Read;
 use std::mem::take;
 
+use crate::cover::{parse_cover_line, Cover};
 use crate::csv::{CsvParser, Sep};
 use crate::header::{parse_header, Header, HeaderParseError};
 use crate::line::Line;
-use crate::summary::{parse_summary, Summary};
 
 /// A FEC file, the core data structure of this crate.
 ///
@@ -17,7 +17,7 @@ pub struct FecFile<R: Read> {
     /// The source of raw bytes
     reader: Option<R>,
     header: Option<Header>,
-    summary: Option<Summary>,
+    cover: Option<Cover>,
     sep: Option<Sep>,
     /// After reading the header, this contains the CSV reader
     /// that will be used to read the rest of the file.
@@ -29,7 +29,7 @@ impl<R: Read> FecFile<R> {
         Self {
             reader: Some(reader),
             header: None,
-            summary: None,
+            cover: None,
             sep: None,
             csv_parser: None,
         }
@@ -41,13 +41,13 @@ impl<R: Read> FecFile<R> {
     }
 
     // TODO: should this not return a reference?
-    pub fn get_summary(&mut self) -> Result<&Summary, String> {
-        self.parse_summary()?;
-        Ok(self.summary.as_ref().expect("summary should be set"))
+    pub fn get_cover(&mut self) -> Result<&Cover, String> {
+        self.parse_cover()?;
+        Ok(self.cover.as_ref().expect("cover should be set"))
     }
 
     pub fn next_line(&mut self) -> Result<Option<Result<Line, String>>, String> {
-        self.parse_summary()?;
+        self.parse_cover()?;
         let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
         Ok(p.next_line())
     }
@@ -65,19 +65,19 @@ impl<R: Read> FecFile<R> {
         Ok(())
     }
 
-    fn parse_summary(&mut self) -> Result<(), String> {
-        if self.summary.is_some() {
+    fn parse_cover(&mut self) -> Result<(), String> {
+        if self.cover.is_some() {
             return Ok(());
         }
         self.make_csv_parser()?;
         let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
         let line = match p.next_line() {
-            None => return Err("No summary line".to_string()),
+            None => return Err("No cover line".to_string()),
             Some(Ok(line)) => line,
             Some(Err(e)) => return Err(e),
         };
-        let s = parse_summary(&line)?;
-        self.summary = Some(s);
+        let s = parse_cover_line(&line)?;
+        self.cover = Some(s);
         Ok(())
     }
 

@@ -20,3 +20,14 @@ Please open an issue or PR if you'd like to add or edit this list.
   Old, unmaintained python parser
 - [fec2json](https://github.com/newsdev/fec2json)
   Not complete parser written in python
+
+## Bibliography
+
+Parsing FEC files is an obscure, poorly documented task.
+
+The FEC publishes technical documentation for the files.
+
+1. Go to https://www.fec.gov/data/browse-data/?tab=bulk-data
+2. Expand the "Electronically filed reports (.fec files)" section.
+3. Click the download link.
+4. Do the same for the "Paper filed reports (.fec files)" section.
