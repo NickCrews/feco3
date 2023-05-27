@@ -17,17 +17,17 @@ use crate::record::Record;
 /// until you call a method that requires it.
 pub struct FecFile {
     /// The source of raw bytes
-    reader: Option<Box<dyn Read>>,
+    reader: Option<Box<dyn Read + Send>>,
     header: Option<Header>,
     cover: Option<Cover>,
     sep: Option<Sep>,
     /// After reading the header, this contains the CSV reader
     /// that will be used to read the rest of the file.
-    csv_parser: Option<CsvParser<Box<dyn Read>>>,
+    csv_parser: Option<CsvParser<Box<dyn Read + Send>>>,
 }
 
 impl FecFile {
-    pub fn from_reader(reader: Box<dyn Read>) -> Self {
+    pub fn from_reader(reader: Box<dyn Read + Send>) -> Self {
         Self {
             reader: Some(reader),
             header: None,
@@ -37,9 +37,9 @@ impl FecFile {
         }
     }
 
-    pub fn from_path(path: &PathBuf) -> Self {
-        let file = File::open(path).expect("Couldn't open file");
-        Self::from_reader(Box::new(file))
+    pub fn from_path(path: &PathBuf) -> Result<Self, std::io::Error> {
+        let file = File::open(path)?;
+        Ok(Self::from_reader(Box::new(file)))
     }
 
     pub fn get_header(&mut self) -> Result<&Header, HeaderParseError> {

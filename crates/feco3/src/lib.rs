@@ -30,7 +30,7 @@ pub mod writers;
 extern crate lazy_static;
 
 pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<dyn Error>> {
-    let mut fec = fec::FecFile::from_path(fec_path);
+    let mut fec = fec::FecFile::from_path(fec_path)?;
     println!("header: {:?}", fec.get_header()?);
     println!("cover: {:?}", fec.get_cover()?);
     let mut writer = writers::csv::CSVMultiFileWriter::new(out_dir);
