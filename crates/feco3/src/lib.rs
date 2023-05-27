@@ -19,6 +19,7 @@ use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
 
+mod csv;
 pub mod fec;
 pub mod header;
 pub mod line;

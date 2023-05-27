@@ -11,7 +11,7 @@ use std::{
     io::{BufReader, Read},
 };
 
-use crate::{fec::Sep, line::parse};
+use crate::{csv::Sep, line::parse};
 use bytelines::ByteLines;
 use std::result::Result;
 
