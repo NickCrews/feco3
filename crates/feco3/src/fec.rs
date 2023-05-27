@@ -1,10 +1,10 @@
 use std::io::Read;
 use std::mem::take;
 
-use crate::cover::{parse_cover_line, Cover};
+use crate::cover::{parse_cover_record, Cover};
 use crate::csv::{CsvParser, Sep};
 use crate::header::{parse_header, Header, HeaderParseError};
-use crate::line::Line;
+use crate::record::Record;
 
 /// A FEC file, the core data structure of this crate.
 ///
@@ -46,10 +46,10 @@ impl<R: Read> FecFile<R> {
         Ok(self.cover.as_ref().expect("cover should be set"))
     }
 
-    pub fn next_line(&mut self) -> Result<Option<Result<Line, String>>, String> {
+    pub fn next_record(&mut self) -> Result<Option<Result<Record, String>>, String> {
         self.parse_cover()?;
         let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
-        Ok(p.next_line())
+        Ok(p.next_record())
     }
 
     fn parse_header(&mut self) -> Result<(), HeaderParseError> {
@@ -71,13 +71,12 @@ impl<R: Read> FecFile<R> {
         }
         self.make_csv_parser()?;
         let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
-        let line = match p.next_line() {
+        let record = match p.next_record() {
             None => return Err("No cover line".to_string()),
-            Some(Ok(line)) => line,
+            Some(Ok(record)) => record,
             Some(Err(e)) => return Err(e),
         };
-        let s = parse_cover_line(&line)?;
-        self.cover = Some(s);
+        self.cover = Some(parse_cover_record(&record)?);
         Ok(())
     }
 

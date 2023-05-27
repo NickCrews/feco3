@@ -1,9 +1,9 @@
-//! A wrapper around csv::Reader that returns Line objects.
+//! A wrapper around [csv::Reader] that returns [Record] objects.
 
 use std::io::Read;
 use std::str::{from_utf8, Utf8Error};
 
-use crate::line::{parse, Line};
+use crate::record::{parse, Record};
 use csv::ReaderBuilder;
 
 #[derive(Debug, Clone)]
@@ -52,7 +52,7 @@ impl<R: Read> CsvParser<R> {
         }
     }
 
-    pub fn next_line(&mut self) -> Option<Result<Line, String>> {
+    pub fn next_record(&mut self) -> Option<Result<Record, String>> {
         let record_or_err: Result<csv::ByteRecord, csv::Error> = self.records.next()?;
         log::debug!("raw_record: {:?}", record_or_err);
         let record: csv::ByteRecord = match record_or_err {
@@ -64,7 +64,7 @@ impl<R: Read> CsvParser<R> {
             Ok(fields) => fields,
             Err(e) => return Some(Err(e.to_string())),
         };
-        let line = parse(&self.fec_version, &mut fields.into_iter());
-        Some(line)
+        let record = parse(&self.fec_version, &mut fields.into_iter());
+        Some(record)
     }
 }

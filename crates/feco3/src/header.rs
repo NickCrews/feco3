@@ -12,7 +12,7 @@ use std::{
     str::{from_utf8, Utf8Error},
 };
 
-use crate::{csv::Sep, line::parse};
+use crate::{csv::Sep, record::parse};
 use bytelines::ByteLines;
 use std::result::Result;
 

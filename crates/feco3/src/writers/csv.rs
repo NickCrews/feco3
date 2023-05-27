@@ -1,16 +1,16 @@
-use super::base::{FileLineWriter, LineWriter, MultiFileLineWriter};
-use crate::line::{Line, LineSchema};
+use super::base::{FileRecordWriter, MultiFileRecordWriter, RecordWriter};
+use crate::record::{Record, RecordSchema};
 use std::{fs::File, path::Path};
 
-/// A [LineWriter] that writes to CSV format.
-pub struct CSVLineWriter<W: std::io::Write> {
+/// A [RecordWriter] that writes to CSV format.
+pub struct CSVFormWriter<W: std::io::Write> {
     csv_writer: csv::Writer<W>,
-    schema: LineSchema,
+    schema: RecordSchema,
     has_written_header: bool,
 }
 
-impl<W: std::io::Write> CSVLineWriter<W> {
-    pub fn new(raw_writer: W, schema: &LineSchema) -> Self {
+impl<W: std::io::Write> CSVFormWriter<W> {
+    pub fn new(raw_writer: W, schema: &RecordSchema) -> Self {
         let writer = csv::WriterBuilder::new()
             .has_headers(false) // We'll write the header ourselves
             .flexible(true)
@@ -35,30 +35,30 @@ impl<W: std::io::Write> CSVLineWriter<W> {
     }
 }
 
-impl<W: std::io::Write> LineWriter for CSVLineWriter<W> {
-    fn write_line(&mut self, line: &Line) -> std::io::Result<()> {
+impl<W: std::io::Write> RecordWriter for CSVFormWriter<W> {
+    fn write_record(&mut self, record: &Record) -> std::io::Result<()> {
         self.maybe_write_header()?;
         // TODO: Check the length of values vs the schema
-        let string_values = line.values.iter().map(|v| v.to_string());
+        let string_values = record.values.iter().map(|v| v.to_string());
         self.csv_writer.write_record(string_values)?;
         Ok(())
     }
 }
 
-/// A [CSVLineWriter] that writes to a file.
-pub type CSVFileLineWriter = CSVLineWriter<File>;
+/// A [CSVFormWriter] that writes to a file.
+pub type CSVFileFormWriter = CSVFormWriter<File>;
 
-impl FileLineWriter for CSVFileLineWriter {
+impl FileRecordWriter for CSVFileFormWriter {
     fn file_name(form_name: String) -> String {
         format!("{}.csv", form_name)
     }
 
-    fn new(path: &Path, schema: &LineSchema) -> std::io::Result<Box<Self>> {
+    fn new(path: &Path, schema: &RecordSchema) -> std::io::Result<Box<Self>> {
         let file = File::create(path)?;
-        let writer = CSVLineWriter::new(file, schema);
+        let writer = CSVFormWriter::new(file, schema);
         Ok(Box::new(writer))
     }
 }
 
-/// A [MultiFileWriter] that writes to CSV files.
-pub type CSVMultiFileWriter = MultiFileLineWriter<CSVFileLineWriter>;
+/// A [MultiFileRecordWriter] that writes to CSV files.
+pub type CSVMultiFileWriter = MultiFileRecordWriter<CSVFileFormWriter>;

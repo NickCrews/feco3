@@ -42,13 +42,13 @@ pub struct FieldSchema {
 
 /// A parsed line of a .FEC file.
 #[derive(Debug, Clone)]
-pub struct Line {
-    pub schema: LineSchema,
+pub struct Record {
+    pub schema: RecordSchema,
     /// May contain fewer or more values than the schema expects.
     pub values: Vec<Value>,
 }
 
-impl Line {
+impl Record {
     pub fn get_value(&self, field_name: &str) -> Option<&Value> {
         let field_index = self
             .schema
@@ -60,25 +60,25 @@ impl Line {
 }
 
 #[derive(Debug, Clone)]
-pub struct LineSchema {
-    /// Line code, eg "F3" or "SA11"
+pub struct RecordSchema {
+    /// Record code, eg "F3" or "SA11"
     pub code: String,
     pub fields: Vec<FieldSchema>,
 }
 
-impl Hash for LineSchema {
+impl Hash for RecordSchema {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.code.hash(state)
     }
 }
 
-impl PartialEq for LineSchema {
+impl PartialEq for RecordSchema {
     fn eq(&self, other: &Self) -> bool {
         self.code == other.code
     }
 }
 
-impl Eq for LineSchema {}
+impl Eq for RecordSchema {}
 
 /// Parse a line of a .FEC file.
 ///
@@ -95,7 +95,7 @@ impl Eq for LineSchema {}
 pub fn parse<'a>(
     fec_version: &str,
     raw: &mut impl Iterator<Item = &'a str>,
-) -> Result<Line, String> {
+) -> Result<Record, String> {
     let line_code = match raw.next() {
         Some(form_name) => form_name,
         None => return Err("No form name".to_string()),
@@ -111,7 +111,7 @@ pub fn parse<'a>(
     if extra_schema_fields > 0 {
         log::error!("extra_schema_fields: {}", extra_schema_fields);
     }
-    Ok(Line {
+    Ok(Record {
         schema: form_schema.clone(),
         values: fields,
     })
@@ -120,7 +120,7 @@ pub fn parse<'a>(
 fn parse_raw_field_val(
     raw: &str,
     field_schema: Option<&FieldSchema>,
-) -> Result<crate::line::Value, String> {
+) -> Result<crate::record::Value, String> {
     // let s = String::from_utf8_lossy(raw_value).to_string();
     let default_field_schema = FieldSchema {
         name: "extra".to_string(),
@@ -128,19 +128,19 @@ fn parse_raw_field_val(
     };
     let field_schema = field_schema.unwrap_or(&default_field_schema);
     let parsed_val = match field_schema.typ {
-        crate::line::ValueType::String => crate::line::Value::String(raw.to_string()),
-        crate::line::ValueType::Integer => {
+        crate::record::ValueType::String => crate::record::Value::String(raw.to_string()),
+        crate::record::ValueType::Integer => {
             let i = raw.parse::<i64>().map_err(|e| e.to_string())?;
-            crate::line::Value::Integer(i)
+            crate::record::Value::Integer(i)
         }
-        crate::line::ValueType::Float => {
+        crate::record::ValueType::Float => {
             let f = raw.parse::<f64>().map_err(|e| e.to_string())?;
-            crate::line::Value::Float(f)
+            crate::record::Value::Float(f)
         }
-        crate::line::ValueType::Date => crate::line::Value::Date(raw.to_string()),
-        crate::line::ValueType::Boolean => {
+        crate::record::ValueType::Date => crate::record::Value::Date(raw.to_string()),
+        crate::record::ValueType::Boolean => {
             let b = raw.parse::<bool>().map_err(|e| e.to_string())?;
-            crate::line::Value::Boolean(b)
+            crate::record::Value::Boolean(b)
         }
     };
     Ok(parsed_val)

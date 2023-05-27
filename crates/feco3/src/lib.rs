@@ -23,7 +23,7 @@ mod cover;
 mod csv;
 pub mod fec;
 pub mod header;
-pub mod line;
+pub mod record;
 mod schemas;
 pub mod writers;
 
@@ -36,8 +36,8 @@ pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<d
     println!("header: {:?}", fec.get_header()?);
     println!("cover: {:?}", fec.get_cover()?);
     let mut writer = writers::csv::CSVMultiFileWriter::new(out_dir);
-    while let Some(line) = fec.next_line()? {
-        writers::base::LineWriter::write_line(&mut writer, &line?)?;
+    while let Some(record) = fec.next_record()? {
+        writers::base::RecordWriter::write_record(&mut writer, &record?)?;
     }
     Ok(())
 }

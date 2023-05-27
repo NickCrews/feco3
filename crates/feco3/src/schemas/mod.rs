@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-use crate::line::LineSchema;
+use crate::record::RecordSchema;
 use serde_json::Value;
 use std::sync::Mutex;
 
-/// Lookup a LineSchema given the .FEC file version and the line code.
+/// Lookup a [RecordSchema] given the .FEC file version and the line code.
 ///
 /// The version is the version of the .FEC file format, like "8.0".
 /// This is found in the header of the .FEC file.
 /// The line code is the first field in each line of the .FEC file.
 /// It is a string like "F3" or "SA11".
-pub fn lookup_schema(version: &str, line_code: &str) -> Result<&'static LineSchema, String> {
+pub fn lookup_schema(version: &str, line_code: &str) -> Result<&'static RecordSchema, String> {
     let key = (version.to_string(), line_code.to_string());
     if let Some(schema) = CACHE.lock().unwrap().get(&key) {
         return Ok(schema);
@@ -20,7 +20,7 @@ pub fn lookup_schema(version: &str, line_code: &str) -> Result<&'static LineSche
     Ok(schema)
 }
 
-fn do_lookup(version: &str, line_code: &str) -> Result<&'static LineSchema, String> {
+fn do_lookup(version: &str, line_code: &str) -> Result<&'static RecordSchema, String> {
     log::debug!(
         "looking up schema for version: '{}', line_code: '{}'",
         version,
@@ -39,12 +39,12 @@ fn do_lookup(version: &str, line_code: &str) -> Result<&'static LineSchema, Stri
             let mut field_schemas = Vec::new();
             // TODO: Look up the types in types.json
             for field_name in fields {
-                field_schemas.push(crate::line::FieldSchema {
+                field_schemas.push(crate::record::FieldSchema {
                     name: field_name.clone(),
-                    typ: crate::line::ValueType::String,
+                    typ: crate::record::ValueType::String,
                 });
             }
-            let schema = LineSchema {
+            let schema = RecordSchema {
                 code: line_code.to_string(),
                 fields: field_schemas,
             };
@@ -61,7 +61,7 @@ fn do_lookup(version: &str, line_code: &str) -> Result<&'static LineSchema, Stri
 }
 
 lazy_static! {
-    static ref CACHE: Mutex<HashMap<(String, String), &'static LineSchema>> =
+    static ref CACHE: Mutex<HashMap<(String, String), &'static RecordSchema>> =
         Mutex::new(HashMap::new());
     static ref MAPPINGS: Vec<(FormRegex, Vec<(VersionRegex, Vec<String>)>)> = load_mappings();
 }
