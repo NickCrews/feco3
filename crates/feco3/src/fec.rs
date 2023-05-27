@@ -15,19 +15,19 @@ use crate::record::Record;
 ///
 /// All methods are lazy and streaming, so nothing is read from the source
 /// until you call a method that requires it.
-pub struct FecFile<R: Read> {
+pub struct FecFile {
     /// The source of raw bytes
-    reader: Option<R>,
+    reader: Option<Box<dyn Read>>,
     header: Option<Header>,
     cover: Option<Cover>,
     sep: Option<Sep>,
     /// After reading the header, this contains the CSV reader
     /// that will be used to read the rest of the file.
-    csv_parser: Option<CsvParser<R>>,
+    csv_parser: Option<CsvParser<Box<dyn Read>>>,
 }
 
-impl<R: Read> FecFile<R> {
-    pub fn from_reader(reader: R) -> Self {
+impl FecFile {
+    pub fn from_reader(reader: Box<dyn Read>) -> Self {
         Self {
             reader: Some(reader),
             header: None,
@@ -35,6 +35,11 @@ impl<R: Read> FecFile<R> {
             sep: None,
             csv_parser: None,
         }
+    }
+
+    pub fn from_path(path: &PathBuf) -> Self {
+        let file = File::open(path).expect("Couldn't open file");
+        Self::from_reader(Box::new(file))
     }
 
     pub fn get_header(&mut self) -> Result<&Header, HeaderParseError> {
@@ -50,7 +55,7 @@ impl<R: Read> FecFile<R> {
 
     pub fn next_record(&mut self) -> Result<Option<Result<Record, String>>, String> {
         self.parse_cover()?;
-        let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
+        let p = self.csv_parser.as_mut().expect("No row parser");
         Ok(p.next_record())
     }
 
@@ -72,7 +77,7 @@ impl<R: Read> FecFile<R> {
             return Ok(());
         }
         self.make_csv_parser()?;
-        let p: &mut CsvParser<R> = self.csv_parser.as_mut().expect("No row parser");
+        let p = self.csv_parser.as_mut().expect("No row parser");
         let record = match p.next_record() {
             None => return Err("No cover line".to_string()),
             Some(Ok(record)) => record,
@@ -95,12 +100,5 @@ impl<R: Read> FecFile<R> {
             self.csv_parser = Some(CsvParser::new(reader, header.fec_version.clone(), &sep));
         }
         Ok(())
-    }
-}
-
-impl FecFile<File> {
-    pub fn from_path(path: &PathBuf) -> Self {
-        let file = File::open(path).expect("Couldn't open file");
-        Self::from_reader(file)
     }
 }
