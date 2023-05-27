@@ -1,16 +1,18 @@
-use super::base::{FileRecordWriter, MultiFileRecordWriter, RecordWriter};
+use super::base::{
+    FileRecordWriterFactory, MultiFileRecordWriterFactory, MultiRecordWriter, RecordWriter,
+};
 use crate::record::{Record, RecordSchema};
-use std::{fs::File, path::Path};
+use std::{fs::File, path::PathBuf};
 
 /// A [RecordWriter] that writes to CSV format.
-pub struct CSVFormWriter<W: std::io::Write> {
+struct CSVFormWriter<W: std::io::Write> {
     csv_writer: csv::Writer<W>,
     schema: RecordSchema,
     has_written_header: bool,
 }
 
 impl<W: std::io::Write> CSVFormWriter<W> {
-    pub fn new(raw_writer: W, schema: &RecordSchema) -> Self {
+    fn new(raw_writer: W, schema: &RecordSchema) -> Self {
         let writer = csv::WriterBuilder::new()
             .has_headers(false) // We'll write the header ourselves
             .flexible(true)
@@ -45,20 +47,26 @@ impl<W: std::io::Write> RecordWriter for CSVFormWriter<W> {
     }
 }
 
-/// A [CSVFormWriter] that writes to a file.
-pub type CSVFileFormWriter = CSVFormWriter<File>;
+struct CSVFileWriterFactory;
 
-impl FileRecordWriter for CSVFileFormWriter {
-    fn file_name(form_name: String) -> String {
+impl FileRecordWriterFactory for CSVFileWriterFactory {
+    fn file_name(&self, form_name: String) -> String {
         format!("{}.csv", form_name)
     }
 
-    fn new(path: &Path, schema: &RecordSchema) -> std::io::Result<Box<Self>> {
+    fn make(
+        &mut self,
+        path: &PathBuf,
+        schema: &RecordSchema,
+    ) -> std::io::Result<Box<dyn RecordWriter>> {
         let file = File::create(path)?;
         let writer = CSVFormWriter::new(file, schema);
         Ok(Box::new(writer))
     }
 }
 
-/// A [MultiFileRecordWriter] that writes to CSV files.
-pub type CSVMultiFileWriter = MultiFileRecordWriter<CSVFileFormWriter>;
+pub fn csv_files_writer(out_dir: PathBuf) -> MultiRecordWriter {
+    let factory = Box::new(CSVFileWriterFactory);
+    let f2 = MultiFileRecordWriterFactory::new(out_dir, factory);
+    MultiRecordWriter::new(Box::new(f2))
+}

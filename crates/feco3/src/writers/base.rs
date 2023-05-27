@@ -1,10 +1,6 @@
 //! API for writing individual records contained in a FEC file.
 
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::record::{Record, RecordSchema};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -14,54 +10,75 @@ pub trait RecordWriter {
     fn write_record(&mut self, record: &Record) -> std::io::Result<()>;
 }
 
-/// A specialization of [RecordWriter] that writes to a file.
-pub trait FileRecordWriter: RecordWriter {
-    fn file_name(form_name: String) -> String;
-    fn new(path: &Path, schema: &RecordSchema) -> std::io::Result<Box<Self>>;
+pub trait RecordWriterFactory {
+    fn make(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>>;
+}
+
+/// Creates [RecordWriter]s that write to a filea.
+pub trait FileRecordWriterFactory {
+    fn file_name(&self, form_name: String) -> String;
+    fn make(
+        &mut self,
+        path: &PathBuf,
+        schema: &RecordSchema,
+    ) -> std::io::Result<Box<dyn RecordWriter>>;
 
     /// Some forms have a slash in their name, which is not allowed in file names.
-    fn norm_form_name(name: &str) -> String {
+    fn norm_form_name(&self, name: &str) -> String {
         name.replace("/", "-")
     }
 }
 
-/// A [RecordWriter] that writes to a directory, each form to its own file.
-pub struct MultiFileRecordWriter<T: FileRecordWriter> {
-    base_path: PathBuf,
-    writers: HashMap<RecordSchema, T>,
+/// A [RecordWriter] that delegates to multiple [RecordWriter]s.
+pub struct MultiRecordWriter {
+    factory: Box<dyn RecordWriterFactory>,
+    writers: HashMap<RecordSchema, Box<dyn RecordWriter>>,
 }
 
-impl<T: FileRecordWriter> MultiFileRecordWriter<T> {
-    pub fn new(base_path: PathBuf) -> Self {
+impl MultiRecordWriter {
+    pub fn new(factory: Box<dyn RecordWriterFactory>) -> Self {
         Self {
-            base_path: base_path,
+            factory,
             writers: HashMap::new(),
         }
     }
 
     // https://users.rust-lang.org/t/issue-with-hashmap-and-fallible-update/44960/8
-    /// Get the existing form writer for a schema, or create a new one if it doesn't exist.
-    fn get_form_writer(&mut self, schema: &RecordSchema) -> std::io::Result<&mut T> {
+    /// Get the existing writer for a schema, or create a new one if it doesn't exist.
+    fn get_writer(&mut self, schema: &RecordSchema) -> std::io::Result<&mut Box<dyn RecordWriter>> {
         Ok(match self.writers.entry(schema.clone()) {
             Occupied(e) => e.into_mut(),
-            Vacant(e) => e.insert(*Self::new_writer(&self.base_path, schema)?),
+            Vacant(e) => e.insert(self.factory.make(schema)?),
         })
-    }
-
-    fn new_writer(base_path: &PathBuf, schema: &RecordSchema) -> std::io::Result<Box<T>> {
-        let form_name = T::norm_form_name(&schema.code);
-        let file_name = T::file_name(form_name);
-        let path = base_path.join(file_name);
-        fs::create_dir_all(&base_path)?;
-        log::debug!("Creating new FileRecordWriter at: {:?}", path);
-        let result = T::new(&path, schema)?;
-        Ok(result)
     }
 }
 
-impl<T: FileRecordWriter> RecordWriter for MultiFileRecordWriter<T> {
+impl RecordWriter for MultiRecordWriter {
     fn write_record(&mut self, record: &Record) -> std::io::Result<()> {
-        let writer = self.get_form_writer(&record.schema)?;
+        let writer = self.get_writer(&record.schema)?;
         writer.write_record(record)
+    }
+}
+
+pub struct MultiFileRecordWriterFactory {
+    base_path: PathBuf,
+    factory: Box<dyn FileRecordWriterFactory>,
+}
+
+impl MultiFileRecordWriterFactory {
+    pub fn new(base_path: PathBuf, factory: Box<dyn FileRecordWriterFactory>) -> Self {
+        Self { base_path, factory }
+    }
+}
+
+impl RecordWriterFactory for MultiFileRecordWriterFactory {
+    fn make(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>> {
+        let form_name = self.factory.norm_form_name(&schema.code);
+        let file_name = self.factory.file_name(form_name);
+        let path = self.base_path.join(file_name);
+        fs::create_dir_all(&self.base_path)?;
+        log::debug!("Creating new FileRecordWriter at: {:?}", path);
+        let result = self.factory.make(&path, schema)?;
+        Ok(result)
     }
 }

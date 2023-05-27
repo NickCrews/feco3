@@ -33,6 +33,7 @@ pub use crate::fec::FecFile;
 pub use crate::fec::RecordIter;
 pub use crate::header::Header;
 pub use crate::record::Record;
+use crate::writers::base::RecordWriter;
 
 pub fn parse_from_path(
     fec_path: &PathBuf,
@@ -41,10 +42,10 @@ pub fn parse_from_path(
     let mut fec = fec::FecFile::from_path(fec_path)?;
     println!("header: {:?}", fec.get_header()?);
     println!("cover: {:?}", fec.get_cover()?);
-    let mut writer = writers::csv::CSVMultiFileWriter::new(out_dir);
+    let mut writer = writers::csv::csv_files_writer(out_dir);
     for record in fec.records() {
         let record = record?;
-        writers::base::RecordWriter::write_record(&mut writer, &record)?;
+        writer.write_record(&record)?;
     }
     Ok(())
 }
