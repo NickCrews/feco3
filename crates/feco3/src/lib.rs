@@ -15,7 +15,6 @@
 //! There are bindings for python available
 //! [on the repo](https://github.com/NickCrews/feco3).
 
-use std::error::Error;
 use std::path::PathBuf;
 
 #[macro_use]
@@ -25,22 +24,42 @@ mod cover;
 mod csv;
 mod fec;
 mod header;
-mod record;
+pub mod record;
 mod schemas;
 pub mod writers;
 
 pub use crate::cover::Cover;
 pub use crate::fec::FecFile;
+pub use crate::fec::RecordIter;
 pub use crate::header::Header;
 pub use crate::record::Record;
 
-pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<dyn Error>> {
+pub fn parse_from_path(
+    fec_path: &PathBuf,
+    out_dir: PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut fec = fec::FecFile::from_path(fec_path)?;
     println!("header: {:?}", fec.get_header()?);
     println!("cover: {:?}", fec.get_cover()?);
     let mut writer = writers::csv::CSVMultiFileWriter::new(out_dir);
-    while let Some(record) = fec.next_record()? {
-        writers::base::RecordWriter::write_record(&mut writer, &record?)?;
+    for record in fec.records() {
+        let record = record?;
+        writers::base::RecordWriter::write_record(&mut writer, &record)?;
     }
     Ok(())
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[allow(missing_docs)]
+    #[error("Failed to parse header: {0}")]
+    HeaderParseError(String),
+
+    #[allow(missing_docs)]
+    #[error("Failed to parse record: {0}")]
+    RecordParseError(String),
+
+    #[allow(missing_docs)]
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 }

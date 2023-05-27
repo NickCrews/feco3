@@ -5,8 +5,9 @@ use std::path::PathBuf;
 
 use crate::cover::{parse_cover_record, Cover};
 use crate::csv::{CsvParser, Sep};
-use crate::header::{parse_header, Header, HeaderParseError};
+use crate::header::{parse_header, Header};
 use crate::record::Record;
+use crate::Error;
 
 /// A FEC file, the core data structure of this crate.
 ///
@@ -37,68 +38,91 @@ impl FecFile {
         }
     }
 
-    pub fn from_path(path: &PathBuf) -> Result<Self, std::io::Error> {
+    pub fn from_path(path: &PathBuf) -> Result<Self, Error> {
         let file = File::open(path)?;
         Ok(Self::from_reader(Box::new(file)))
     }
 
-    pub fn get_header(&mut self) -> Result<&Header, HeaderParseError> {
+    pub fn get_header(&mut self) -> Result<&Header, Error> {
         self.parse_header()?;
         Ok(self.header.as_ref().expect("header should be set"))
     }
 
     // TODO: should this not return a reference?
-    pub fn get_cover(&mut self) -> Result<&Cover, String> {
+    pub fn get_cover(&mut self) -> Result<&Cover, Error> {
         self.parse_cover()?;
         Ok(self.cover.as_ref().expect("cover should be set"))
     }
 
-    pub fn next_record(&mut self) -> Result<Option<Result<Record, String>>, String> {
-        self.parse_cover()?;
+    pub fn next_record(&mut self) -> Option<Result<Record, Error>> {
+        match self.parse_cover() {
+            Err(e) => return Some(Err(e)),
+            Ok(_) => (),
+        }
         let p = self.csv_parser.as_mut().expect("No row parser");
-        Ok(p.next_record())
+        match p.next_record() {
+            None => return None,
+            Some(Ok(record)) => Some(Ok(record)),
+            Some(Err(e)) => Some(Err(Error::RecordParseError(e.to_string()))),
+        }
     }
 
-    fn parse_header(&mut self) -> Result<(), HeaderParseError> {
+    pub fn records(&mut self) -> RecordIter {
+        RecordIter { fec_file: self }
+    }
+
+    fn parse_header(&mut self) -> Result<(), Error> {
         if self.header.is_some() {
             return Ok(());
         }
-        if self.reader.is_none() {
-            panic!("No reader")
-        }
-        let header_parsing = parse_header(self.reader.as_mut().unwrap())?;
+        let reader = self.reader.as_mut().expect("no reader");
+        let header_parsing =
+            parse_header(reader).map_err(|e| Error::HeaderParseError(e.to_string()))?;
         self.header = Some(header_parsing.header.clone());
         self.sep = Some(header_parsing.sep.clone());
         Ok(())
     }
 
-    fn parse_cover(&mut self) -> Result<(), String> {
+    fn parse_cover(&mut self) -> Result<(), Error> {
         if self.cover.is_some() {
             return Ok(());
         }
         self.make_csv_parser()?;
         let p = self.csv_parser.as_mut().expect("No row parser");
         let record = match p.next_record() {
-            None => return Err("No cover line".to_string()),
+            None => return Err(Error::HeaderParseError("no cover record".to_string())),
             Some(Ok(record)) => record,
-            Some(Err(e)) => return Err(e),
+            Some(Err(e)) => return Err(Error::HeaderParseError(e.to_string())),
         };
-        self.cover = Some(parse_cover_record(&record)?);
+        self.cover = Some(parse_cover_record(&record).map_err(Error::HeaderParseError)?);
         Ok(())
     }
 
-    fn make_csv_parser(&mut self) -> Result<(), String> {
+    fn make_csv_parser(&mut self) -> Result<(), Error> {
         if self.csv_parser.is_some() {
             return Ok(());
         }
-        self.parse_header().map_err(|e| e.to_string())?;
+        self.parse_header()
+            .map_err(|e| Error::HeaderParseError(e.to_string()))?;
         let header = self.header.as_ref().expect("No header");
         let sep = self.sep.as_ref().expect("No sep");
         if self.csv_parser.is_none() {
             // Hand off the reader ownership to the row parser.
-            let reader = take(&mut self.reader).ok_or("No reader")?;
+            let reader = take(&mut self.reader).expect("no reader");
             self.csv_parser = Some(CsvParser::new(reader, header.fec_version.clone(), &sep));
         }
         Ok(())
+    }
+}
+
+pub struct RecordIter<'a> {
+    fec_file: &'a mut FecFile,
+}
+
+impl<'a> Iterator for RecordIter<'a> {
+    type Item = Result<Record, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.fec_file.next_record()
     }
 }
