@@ -1,4 +1,4 @@
-//! Parse the header of a fec file.
+//! Parse the header, the first section of an .FEC file.
 //!
 //! The header holds meta information on the filing itself, such as
 //! the version of the FEC file format, and the software used to
