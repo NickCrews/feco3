@@ -16,7 +16,6 @@
 //! [on the repo](https://github.com/NickCrews/feco3).
 
 use std::error::Error;
-use std::fs::File;
 use std::path::PathBuf;
 
 mod cover;
@@ -31,8 +30,7 @@ pub mod writers;
 extern crate lazy_static;
 
 pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), Box<dyn Error>> {
-    let file = File::open(fec_path)?;
-    let mut fec = fec::FecFile::from_reader(file);
+    let mut fec = fec::FecFile::from_path(fec_path);
     println!("header: {:?}", fec.get_header()?);
     println!("cover: {:?}", fec.get_cover()?);
     let mut writer = writers::csv::CSVMultiFileWriter::new(out_dir);

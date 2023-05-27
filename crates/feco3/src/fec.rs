@@ -1,5 +1,7 @@
+use std::fs::File;
 use std::io::Read;
 use std::mem::take;
+use std::path::PathBuf;
 
 use crate::cover::{parse_cover_record, Cover};
 use crate::csv::{CsvParser, Sep};
@@ -93,5 +95,12 @@ impl<R: Read> FecFile<R> {
             self.csv_parser = Some(CsvParser::new(reader, header.fec_version.clone(), &sep));
         }
         Ok(())
+    }
+}
+
+impl FecFile<File> {
+    pub fn from_path(path: &PathBuf) -> Self {
+        let file = File::open(path).expect("Couldn't open file");
+        Self::from_reader(file)
     }
 }
