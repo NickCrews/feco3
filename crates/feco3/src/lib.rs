@@ -45,6 +45,7 @@ pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), crate
         let record = record?;
         writer.write_record(&record)?;
     }
+    writer.finish()?;
     Ok(())
 }
 
