@@ -1,4 +1,7 @@
-use crate::record::{Record, RecordSchema, Value};
+use crate::{
+    record::{Record, RecordSchema, Value},
+    Error,
+};
 
 use super::lookup_schema;
 
@@ -8,7 +11,7 @@ pub trait LineParser<'a> {
         &mut self,
         schema: &RecordSchema,
         line: &mut impl Iterator<Item = &'a String>,
-    ) -> Result<Vec<Value>, String>;
+    ) -> Result<Vec<Value>, Error>;
 
     /// Parse a complete line of a .FEC file.
     ///
@@ -20,7 +23,7 @@ pub trait LineParser<'a> {
         &mut self,
         fec_version: &str,
         line: &mut impl Iterator<Item = &'a String>,
-    ) -> Result<Record, String> {
+    ) -> Result<Record, Error> {
         let (line_code, line) = get_line_code(line)?;
         let schema: &RecordSchema = lookup_schema(fec_version, line_code)?;
         let values = self.parse_values(schema, line)?;
@@ -45,11 +48,13 @@ impl<'a> LineParser<'a> for LiteralLineParser {
         &mut self,
         schema: &RecordSchema,
         raw: &mut impl Iterator<Item = &'a String>,
-    ) -> Result<Vec<Value>, String> {
+    ) -> Result<Vec<Value>, Error> {
         let mut field_schemas = schema.fields.iter();
         let mut values = Vec::new();
         for raw_value in raw {
-            let field_schema = field_schemas.next().ok_or("too many values")?;
+            let field_schema = field_schemas
+                .next()
+                .ok_or(Error::RecordParseError("too many values".to_string()))?;
             let value = field_schema.typ.parse_to_value(Some(raw_value))?;
             values.push(value);
         }
@@ -61,13 +66,13 @@ impl<'a> LineParser<'a> for LiteralLineParser {
     }
 }
 
-pub fn get_line_code<'a, T>(mut line: T) -> Result<(&'a str, T), String>
+pub fn get_line_code<'a, T>(mut line: T) -> Result<(&'a str, T), Error>
 where
     T: Iterator<Item = &'a String>,
 {
     let form_name = match line.next() {
         Some(form_name) => form_name,
-        None => return Err("No form name".to_string()),
+        None => return Err(Error::RecordParseError("No form name".to_string())),
     };
     Ok((form_name, line))
 }
@@ -79,7 +84,7 @@ impl<'a> LineParser<'a> for CoercingLineParser {
         &mut self,
         schema: &RecordSchema,
         line: &mut impl Iterator<Item = &'a String>,
-    ) -> Result<Vec<Value>, String> {
+    ) -> Result<Vec<Value>, Error> {
         let mut field_schemas = schema.fields.iter();
         let mut values = Vec::new();
         for raw in line {

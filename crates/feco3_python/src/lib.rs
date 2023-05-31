@@ -19,7 +19,7 @@ impl FecFile {
 fn parse_from_path(fec_path: PathBuf, out_dir: PathBuf) -> PyResult<()> {
     match feco3::parse_from_path(&fec_path, out_dir) {
         Ok(()) => Ok(()),
-        Err(e) => Err(PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string())),
+        Err(e) => Err(to_py_err(e)),
     }
 }
 
@@ -43,5 +43,11 @@ fn to_py_err(e: feco3::Error) -> PyErr {
             PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string())
         }
         feco3::Error::IoError(e) => PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()),
+        feco3::Error::SchemaError(e, f) => {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}: {}", e, f))
+        }
+        feco3::Error::CoverParseError(e) => {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string())
+        }
     }
 }

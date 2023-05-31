@@ -1,6 +1,8 @@
 use std::fmt;
 use std::hash::Hash;
 
+use crate::Error;
+
 #[derive(Debug, Clone)]
 pub enum Value {
     String(Option<String>),
@@ -50,7 +52,7 @@ pub enum ValueType {
 }
 
 impl ValueType {
-    pub fn parse_to_value(&self, raw: Option<&String>) -> Result<Value, String> {
+    pub fn parse_to_value(&self, raw: Option<&String>) -> Result<Value, Error> {
         let parsed_val = match raw {
             None => match self {
                 ValueType::String => Value::String(None),
@@ -62,16 +64,22 @@ impl ValueType {
             Some(raw) => match self {
                 ValueType::String => Value::String(Some(raw.clone())),
                 ValueType::Integer => {
-                    let i = raw.parse::<i64>().map_err(|e| e.to_string())?;
+                    let i = raw
+                        .parse::<i64>()
+                        .map_err(|e| Error::RecordParseError(e.to_string()))?;
                     Value::Integer(Some(i))
                 }
                 ValueType::Float => {
-                    let f = raw.parse::<f64>().map_err(|e| e.to_string())?;
+                    let f = raw
+                        .parse::<f64>()
+                        .map_err(|e| Error::RecordParseError(e.to_string()))?;
                     Value::Float(Some(f))
                 }
                 ValueType::Date => Value::Date(Some(parse_date(raw)?)),
                 ValueType::Boolean => {
-                    let b = raw.parse::<bool>().map_err(|e| e.to_string())?;
+                    let b = raw
+                        .parse::<bool>()
+                        .map_err(|e| Error::RecordParseError(e.to_string()))?;
                     Value::Boolean(Some(b))
                 }
             },
@@ -127,7 +135,8 @@ impl PartialEq for RecordSchema {
 
 impl Eq for RecordSchema {}
 
-fn parse_date(raw: &str) -> Result<chrono::NaiveDate, String> {
-    let date = chrono::NaiveDate::parse_from_str(raw, "%Y%m%d").map_err(|e| e.to_string())?;
+fn parse_date(raw: &str) -> Result<chrono::NaiveDate, Error> {
+    let date = chrono::NaiveDate::parse_from_str(raw, "%Y%m%d")
+        .map_err(|e| Error::RecordParseError(e.to_string()))?;
     Ok(date)
 }

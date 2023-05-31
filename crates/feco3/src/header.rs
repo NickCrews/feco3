@@ -197,7 +197,9 @@ fn parse_nonlegacy_header(line: &Vec<u8>) -> Result<HeaderParsing, String> {
         _ => parts[1],
     };
     let string_parts = parts.iter().map(|s| s.to_string()).collect::<Vec<String>>();
-    let record = LiteralLineParser.parse_line(version, &mut string_parts.iter())?;
+    let record = LiteralLineParser
+        .parse_line(version, &mut string_parts.iter())
+        .map_err(|e| e.to_string())?;
     header.fec_version = version.to_string();
     header.software_name = record
         .get_value("soft_name")

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::record::RecordSchema;
+use crate::{record::RecordSchema, Error};
 use serde_json::Value;
 use std::sync::Mutex;
 
@@ -10,7 +10,7 @@ use std::sync::Mutex;
 /// This is found in the header of the .FEC file.
 /// The line code is the first field in each line of the .FEC file.
 /// It is a string like "F3" or "SA11".
-pub fn lookup_schema(version: &str, line_code: &str) -> Result<&'static RecordSchema, String> {
+pub fn lookup_schema(version: &str, line_code: &str) -> Result<&'static RecordSchema, Error> {
     let key = (version.to_string(), line_code.to_string());
     if let Some(schema) = CACHE.lock().unwrap().get(&key) {
         return Ok(schema);
@@ -20,7 +20,7 @@ pub fn lookup_schema(version: &str, line_code: &str) -> Result<&'static RecordSc
     Ok(schema)
 }
 
-fn do_lookup(version: &str, line_code: &str) -> Result<&'static RecordSchema, String> {
+fn do_lookup(version: &str, line_code: &str) -> Result<&'static RecordSchema, Error> {
     log::debug!(
         "looking up schema for version: '{}', line_code: '{}'",
         version,
@@ -54,9 +54,9 @@ fn do_lookup(version: &str, line_code: &str) -> Result<&'static RecordSchema, St
             return Ok(Box::leak(Box::new(schema)));
         }
     }
-    Err(format!(
-        "Couldn't find schema for form type: {}, version: {}",
-        line_code, version
+    Err(Error::SchemaError(
+        version.to_string(),
+        line_code.to_string(),
     ))
 }
 

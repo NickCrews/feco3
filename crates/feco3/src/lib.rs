@@ -35,14 +35,12 @@ pub use crate::header::Header;
 pub use crate::record::Record;
 use crate::writers::base::RecordWriter;
 
-pub fn parse_from_path(
-    fec_path: &PathBuf,
-    out_dir: PathBuf,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), crate::Error> {
     let mut fec = fec::FecFile::from_path(fec_path)?;
     println!("header: {:?}", fec.get_header()?);
     println!("cover: {:?}", fec.get_cover()?);
-    let mut writer = writers::csv::csv_files_writer(out_dir);
+    let mut writer = writers::parquet::parquet_files_writer(out_dir, None);
+    // let mut writer = writers::csv::csv_files_writer(out_dir);
     for record in fec.records() {
         let record = record?;
         writer.write_record(&record)?;
@@ -53,12 +51,20 @@ pub fn parse_from_path(
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[allow(missing_docs)]
-    #[error("Failed to parse header: {0}")]
-    HeaderParseError(String),
+    #[error(transparent)]
+    HeaderParseError(#[from] header::HeaderParseError),
+
+    #[allow(missing_docs)]
+    #[error("Failed to parse cover line: {0}")]
+    CoverParseError(String),
 
     #[allow(missing_docs)]
     #[error("Failed to parse record: {0}")]
     RecordParseError(String),
+
+    #[allow(missing_docs)]
+    #[error("Failed to find schema for fec version {0} and line code {1}")]
+    SchemaError(String, String),
 
     #[allow(missing_docs)]
     #[error(transparent)]

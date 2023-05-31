@@ -5,6 +5,7 @@
 //! See the test case .fec files for examples.
 use crate::record::Record;
 use crate::schemas::{LineParser, LiteralLineParser};
+use crate::Error;
 
 #[derive(Debug, Clone, Default)]
 pub struct Cover {
@@ -15,7 +16,7 @@ pub struct Cover {
 pub fn parse_cover_line<'a>(
     fec_version: &str,
     line: &mut impl Iterator<Item = &'a String>,
-) -> Result<Cover, String> {
+) -> Result<Cover, Error> {
     let mut cover = Cover::default();
     let record = LiteralLineParser.parse_line(fec_version, line)?;
     cover.form_type = get(&record, "form_type")?;
@@ -23,9 +24,12 @@ pub fn parse_cover_line<'a>(
     Ok(cover)
 }
 
-fn get(record: &Record, field_name: &str) -> Result<String, String> {
+fn get(record: &Record, field_name: &str) -> Result<String, Error> {
     Ok(record
         .get_value(field_name)
-        .ok_or(format!("no '{}' in cover line", field_name))?
+        .ok_or(Error::CoverParseError(format!(
+            "no '{}' in cover line",
+            field_name
+        )))?
         .to_string())
 }

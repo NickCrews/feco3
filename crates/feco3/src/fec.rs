@@ -88,8 +88,7 @@ impl FecFile {
             return Ok(());
         }
         let reader = self.reader.as_mut().expect("no reader");
-        let header_parsing =
-            parse_header(reader).map_err(|e| Error::HeaderParseError(e.to_string()))?;
+        let header_parsing = parse_header(reader).map_err(Error::HeaderParseError)?;
         self.header = Some(header_parsing.header.clone());
         self.sep = Some(header_parsing.sep.clone());
         Ok(())
@@ -103,12 +102,11 @@ impl FecFile {
         let fec_version = &self.fec_version().clone();
         let p = self.csv_reader.as_mut().expect("No row parser");
         let line = match p.next_line() {
-            None => return Err(Error::HeaderParseError("no cover record".to_string())),
+            None => return Err(Error::CoverParseError("no cover record".to_string())),
             Some(Ok(record)) => record,
-            Some(Err(e)) => return Err(Error::HeaderParseError(e.to_string())),
+            Some(Err(e)) => return Err(Error::CoverParseError(e.to_string())),
         };
-        self.cover =
-            Some(parse_cover_line(fec_version, &mut line.iter()).map_err(Error::HeaderParseError)?);
+        self.cover = Some(parse_cover_line(fec_version, &mut line.iter())?);
         Ok(())
     }
 
@@ -116,8 +114,7 @@ impl FecFile {
         if self.csv_reader.is_some() {
             return Ok(());
         }
-        self.parse_header()
-            .map_err(|e| Error::HeaderParseError(e.to_string()))?;
+        self.parse_header()?;
         let sep = self.sep.as_ref().expect("No sep");
         if self.csv_reader.is_none() {
             // Hand off the reader ownership to the row parser.
