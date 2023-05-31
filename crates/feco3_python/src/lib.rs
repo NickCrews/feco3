@@ -1,4 +1,7 @@
-use pyo3::prelude::*;
+use pyo3::{
+    exceptions::{PyIOError, PyValueError},
+    prelude::*,
+};
 use std::path::PathBuf;
 
 #[pyclass]
@@ -36,18 +39,13 @@ fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
 
 fn to_py_err(e: feco3::Error) -> PyErr {
     match e {
-        feco3::Error::HeaderParseError(e) => {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string())
-        }
-        feco3::Error::RecordParseError(e) => {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string())
-        }
-        feco3::Error::IoError(e) => PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()),
-        feco3::Error::SchemaError(e, f) => {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}: {}", e, f))
-        }
-        feco3::Error::CoverParseError(e) => {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string())
-        }
+        feco3::Error::HeaderParseError(e) => PyErr::new::<PyValueError, _>(e.to_string()),
+        feco3::Error::RecordParseError(e) => PyErr::new::<PyValueError, _>(e.to_string()),
+        feco3::Error::IoError(e) => PyErr::new::<PyIOError, _>(e.to_string()),
+        feco3::Error::SchemaError(e, f) => PyErr::new::<PyValueError, _>(format!(
+            "Failed to find schema for fec version {} and line code {}",
+            e, f
+        )),
+        feco3::Error::CoverParseError(e) => PyErr::new::<PyValueError, _>(e.to_string()),
     }
 }

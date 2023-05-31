@@ -66,7 +66,7 @@ impl<'a> LineParser<'a> for LiteralLineParser {
     }
 }
 
-pub fn get_line_code<'a, T>(mut line: T) -> Result<(&'a str, T), Error>
+fn get_line_code<'a, T>(mut line: T) -> Result<(&'a str, T), Error>
 where
     T: Iterator<Item = &'a String>,
 {

@@ -18,8 +18,11 @@ pub fn parse_cover_line<'a>(
     line: &mut impl Iterator<Item = &'a String>,
 ) -> Result<Cover, Error> {
     let mut cover = Cover::default();
-    let record = LiteralLineParser.parse_line(fec_version, line)?;
-    cover.form_type = get(&record, "form_type")?;
+    let line = line.collect::<Vec<&String>>();
+    log::debug!("parsing cover line {} {:?}", fec_version, line);
+    println!("parsing cover line {} {:?}", fec_version, line);
+    let record = LiteralLineParser.parse_line(fec_version, &mut line.into_iter())?;
+    cover.form_type = record.line_code.clone();
     cover.filer_committee_id_number = get(&record, "filer_committee_id_number")?;
     Ok(cover)
 }
