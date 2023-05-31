@@ -6,8 +6,6 @@ use std::path::PathBuf;
 use crate::cover::{parse_cover_line, Cover};
 use crate::csv::{CsvReader, Sep};
 use crate::header::{parse_header, Header};
-use crate::record::Record;
-use crate::schemas::{LineParser, LiteralLineParser};
 use crate::Error;
 
 /// A FEC file, the core data structure of this crate.
@@ -60,27 +58,21 @@ impl FecFile {
         self.header.as_ref().expect("No header").fec_version.clone()
     }
 
-    pub fn next_record(&mut self) -> Option<Result<Record, Error>> {
+    pub fn next_line(&mut self) -> Option<Result<Vec<String>, Error>> {
         match self.parse_cover() {
             Err(e) => return Some(Err(e)),
             Ok(_) => (),
         }
-        let fec_version = &self.fec_version().clone();
         let p = self.csv_reader.as_mut().expect("No row parser");
-        let line = match p.next_line() {
+        match p.next_line() {
             None => return None,
-            Some(Ok(line)) => line,
+            Some(Ok(line)) => Some(Ok(line)),
             Some(Err(e)) => return Some(Err(Error::RecordParseError(e.to_string()))),
-        };
-        Some(
-            LiteralLineParser
-                .parse_line(fec_version, &mut line.iter())
-                .map_err(|e| Error::RecordParseError(e.to_string())),
-        )
+        }
     }
 
-    pub fn records(&mut self) -> RecordIter {
-        RecordIter { fec_file: self }
+    pub fn lines(&mut self) -> LineIter {
+        LineIter { fec_file: self }
     }
 
     fn parse_header(&mut self) -> Result<(), Error> {
@@ -125,14 +117,14 @@ impl FecFile {
     }
 }
 
-pub struct RecordIter<'a> {
+pub struct LineIter<'a> {
     fec_file: &'a mut FecFile,
 }
 
-impl<'a> Iterator for RecordIter<'a> {
-    type Item = Result<Record, Error>;
+impl<'a> Iterator for LineIter<'a> {
+    type Item = Result<Vec<String>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.fec_file.next_record()
+        self.fec_file.next_line()
     }
 }

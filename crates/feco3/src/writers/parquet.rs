@@ -72,6 +72,7 @@ impl ParquetWriter {
     ) -> std::io::Result<Self> {
         let arrow_schema = record_schema_to_arrow_schema(feco3_schema);
         let arrow_schema = Arc::new(arrow_schema);
+        println!("using schema: {:?}", arrow_schema);
         let writer = ArrowWriter::try_new(file, arrow_schema, props).unwrap();
         Ok(Self {
             // arrow_schema,
@@ -84,6 +85,7 @@ impl RecordWriter for ParquetWriter {
     fn write_record(&mut self, record: &crate::Record) -> std::io::Result<()> {
         let writer = self.writer.as_mut().expect("writing to a closed writer");
         let arrow_record = record_to_arrow_record(record);
+        println!("writing record: {:?}", arrow_record.schema());
         writer.write(&arrow_record)?;
         Ok(())
     }
