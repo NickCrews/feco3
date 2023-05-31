@@ -1,25 +1,28 @@
 use std::fmt;
 use std::hash::Hash;
 
-use crate::schemas::lookup_schema;
-
 #[derive(Debug, Clone)]
 pub enum Value {
-    String(String),
-    Integer(i64),
-    Float(f64),
-    Date(chrono::NaiveDate),
-    Boolean(bool),
+    String(Option<String>),
+    Integer(Option<i64>),
+    Float(Option<f64>),
+    Date(Option<chrono::NaiveDate>),
+    Boolean(Option<bool>),
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::String(s) => write!(f, "{}", s),
-            Value::Integer(i) => write!(f, "{}", i),
-            Value::Float(fl) => write!(f, "{}", fl),
-            Value::Date(d) => write!(f, "{}", d.format("%Y-%m-%d")),
-            Value::Boolean(b) => write!(f, "{}", b),
+            Value::String(Some(s)) => write!(f, "{}", s),
+            Value::String(None) => write!(f, ""),
+            Value::Integer(Some(i)) => write!(f, "{}", i),
+            Value::Integer(None) => write!(f, ""),
+            Value::Float(Some(fl)) => write!(f, "{}", fl),
+            Value::Float(None) => write!(f, ""),
+            Value::Date(Some(d)) => write!(f, "{}", d.format("%Y-%m-%d")),
+            Value::Date(None) => write!(f, ""),
+            Value::Boolean(Some(b)) => write!(f, "{}", b),
+            Value::Boolean(None) => write!(f, ""),
         }
     }
 }
@@ -46,6 +49,37 @@ pub enum ValueType {
     Boolean,
 }
 
+impl ValueType {
+    pub fn parse_to_value(&self, raw: Option<&String>) -> Result<Value, String> {
+        let parsed_val = match raw {
+            None => match self {
+                ValueType::String => Value::String(None),
+                ValueType::Integer => Value::Integer(None),
+                ValueType::Float => Value::Float(None),
+                ValueType::Date => Value::Date(None),
+                ValueType::Boolean => Value::Boolean(None),
+            },
+            Some(raw) => match self {
+                ValueType::String => Value::String(Some(raw.clone())),
+                ValueType::Integer => {
+                    let i = raw.parse::<i64>().map_err(|e| e.to_string())?;
+                    Value::Integer(Some(i))
+                }
+                ValueType::Float => {
+                    let f = raw.parse::<f64>().map_err(|e| e.to_string())?;
+                    Value::Float(Some(f))
+                }
+                ValueType::Date => Value::Date(Some(parse_date(raw)?)),
+                ValueType::Boolean => {
+                    let b = raw.parse::<bool>().map_err(|e| e.to_string())?;
+                    Value::Boolean(Some(b))
+                }
+            },
+        };
+        Ok(parsed_val)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FieldSchema {
     pub name: String,
@@ -55,6 +89,7 @@ pub struct FieldSchema {
 /// A parsed line of a .FEC file.
 #[derive(Debug, Clone)]
 pub struct Record {
+    pub line_code: String,
     pub schema: RecordSchema,
     /// May contain fewer or more values than the schema expects.
     pub values: Vec<Value>,
@@ -91,72 +126,6 @@ impl PartialEq for RecordSchema {
 }
 
 impl Eq for RecordSchema {}
-
-/// Parse a line of a .FEC file.
-///
-/// Given a version string like "8.0" and a iterable of byte slices,
-/// take the first item as the line code, and the rest as the values.
-/// Lookup the schema for the line code and version, and parse the values
-/// according to the schema.
-///
-/// We return a line with the exact number of values seen, which
-/// might be different from the expected number of values in the schema.
-/// This is because the FEC files are not always consistent with the schema.
-/// If we see more values than expected, we don't know what type they are
-/// supposed to be, so we just return them as Strings.
-pub fn parse<'a>(
-    fec_version: &str,
-    raw: &mut impl Iterator<Item = &'a str>,
-) -> Result<Record, String> {
-    let line_code = match raw.next() {
-        Some(form_name) => form_name,
-        None => return Err("No form name".to_string()),
-    };
-    let form_schema = lookup_schema(fec_version, &line_code)?;
-    let mut schema_fields = form_schema.fields.iter();
-    let mut fields = Vec::new();
-    fields.push(parse_raw_field_val(line_code, None)?);
-    for raw_value in raw {
-        fields.push(parse_raw_field_val(raw_value, schema_fields.next())?);
-    }
-    let extra_schema_fields = schema_fields.count();
-    if extra_schema_fields > 0 {
-        log::error!("extra_schema_fields: {}", extra_schema_fields);
-    }
-    Ok(Record {
-        schema: form_schema.clone(),
-        values: fields,
-    })
-}
-
-fn parse_raw_field_val(
-    raw: &str,
-    field_schema: Option<&FieldSchema>,
-) -> Result<crate::record::Value, String> {
-    // let s = String::from_utf8_lossy(raw_value).to_string();
-    let default_field_schema = FieldSchema {
-        name: "extra".to_string(),
-        typ: ValueType::String,
-    };
-    let field_schema = field_schema.unwrap_or(&default_field_schema);
-    let parsed_val = match field_schema.typ {
-        crate::record::ValueType::String => crate::record::Value::String(raw.to_string()),
-        crate::record::ValueType::Integer => {
-            let i = raw.parse::<i64>().map_err(|e| e.to_string())?;
-            crate::record::Value::Integer(i)
-        }
-        crate::record::ValueType::Float => {
-            let f = raw.parse::<f64>().map_err(|e| e.to_string())?;
-            crate::record::Value::Float(f)
-        }
-        crate::record::ValueType::Date => crate::record::Value::Date(parse_date(raw)?),
-        crate::record::ValueType::Boolean => {
-            let b = raw.parse::<bool>().map_err(|e| e.to_string())?;
-            crate::record::Value::Boolean(b)
-        }
-    };
-    Ok(parsed_val)
-}
 
 fn parse_date(raw: &str) -> Result<chrono::NaiveDate, String> {
     let date = chrono::NaiveDate::parse_from_str(raw, "%Y%m%d").map_err(|e| e.to_string())?;

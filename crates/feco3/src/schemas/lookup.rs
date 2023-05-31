@@ -38,7 +38,7 @@ fn do_lookup(version: &str, line_code: &str) -> Result<&'static RecordSchema, St
             log::debug!("matched version regex: {:?}", version_regex);
             let mut field_schemas = Vec::new();
             // TODO: Look up the types in types.json
-            for field_name in fields {
+            for field_name in fields.iter().skip(1) {
                 field_schemas.push(crate::record::FieldSchema {
                     name: field_name.clone(),
                     typ: crate::record::ValueType::String,

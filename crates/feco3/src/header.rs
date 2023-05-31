@@ -12,9 +12,11 @@ use std::{
     str::{from_utf8, Utf8Error},
 };
 
-use crate::{csv::Sep, record::parse};
+use crate::{csv::Sep, schemas::LineParser};
 use bytelines::ByteLines;
 use std::result::Result;
+
+use crate::schemas::LiteralLineParser;
 
 /// The header of a FEC file.
 ///
@@ -194,15 +196,16 @@ fn parse_nonlegacy_header(line: &Vec<u8>) -> Result<HeaderParsing, String> {
         }
         _ => parts[1],
     };
-    let line = parse(version, &mut parts.into_iter())?;
+    let string_parts = parts.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+    let record = LiteralLineParser.parse_line(version, &mut string_parts.iter())?;
     header.fec_version = version.to_string();
-    header.software_name = line
+    header.software_name = record
         .get_value("soft_name")
         .ok_or("missing soft_name")?
         .to_string();
-    header.software_version = line.get_value("soft_ver").map(|s| s.to_string());
-    header.report_id = line.get_value("report_id").map(|s| s.to_string());
-    header.report_number = line.get_value("report_number").map(|s| s.to_string());
+    header.software_version = record.get_value("soft_ver").map(|s| s.to_string());
+    header.report_id = record.get_value("report_id").map(|s| s.to_string());
+    header.report_number = record.get_value("report_number").map(|s| s.to_string());
     Ok(HeaderParsing { header, sep })
 }
 

@@ -3,11 +3,15 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::record::{Record, RecordSchema};
+use crate::Error;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 /// Writes single itemization records.
 pub trait RecordWriter {
     fn write_record(&mut self, record: &Record) -> std::io::Result<()>;
+    fn finish(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 pub trait RecordWriterFactory {
@@ -57,6 +61,12 @@ impl RecordWriter for MultiRecordWriter {
     fn write_record(&mut self, record: &Record) -> std::io::Result<()> {
         let writer = self.get_writer(&record.schema)?;
         writer.write_record(record)
+    }
+    fn finish(&mut self) -> Result<(), Error> {
+        for (_, writer) in self.writers.iter_mut() {
+            writer.finish()?;
+        }
+        Ok(())
     }
 }
 

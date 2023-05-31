@@ -4,6 +4,7 @@
 //!
 //! See the test case .fec files for examples.
 use crate::record::Record;
+use crate::schemas::{LineParser, LiteralLineParser};
 
 #[derive(Debug, Clone, Default)]
 pub struct Cover {
@@ -11,15 +12,19 @@ pub struct Cover {
     filer_committee_id_number: String,
 }
 
-pub fn parse_cover_record(line: &Record) -> Result<Cover, String> {
+pub fn parse_cover_line<'a>(
+    fec_version: &str,
+    line: &mut impl Iterator<Item = &'a String>,
+) -> Result<Cover, String> {
     let mut cover = Cover::default();
-    cover.form_type = get(line, "form_type")?;
-    cover.filer_committee_id_number = get(line, "filer_committee_id_number")?;
+    let record = LiteralLineParser.parse_line(fec_version, line)?;
+    cover.form_type = get(&record, "form_type")?;
+    cover.filer_committee_id_number = get(&record, "filer_committee_id_number")?;
     Ok(cover)
 }
 
-fn get(line: &Record, field_name: &str) -> Result<String, String> {
-    Ok(line
+fn get(record: &Record, field_name: &str) -> Result<String, String> {
+    Ok(record
         .get_value(field_name)
         .ok_or(format!("no '{}' in cover line", field_name))?
         .to_string())

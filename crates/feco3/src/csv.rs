@@ -1,9 +1,7 @@
-//! A wrapper around [csv::Reader] that returns [Record] objects.
+//! A wrapper around [csv::Reader] that returns raw Vec<&str> records.
 
 use std::io::Read;
-use std::str::{from_utf8, Utf8Error};
 
-use crate::record::{parse, Record};
 use csv::ReaderBuilder;
 
 #[derive(Debug, Clone)]
@@ -34,37 +32,37 @@ impl Sep {
 }
 
 /// A convenience wrapper around a csv::Reader.
-pub struct CsvParser<R: Read> {
-    fec_version: String,
-    records: csv::ByteRecordsIntoIter<R>,
+pub struct CsvReader<R: Read> {
+    records: csv::StringRecordsIntoIter<R>,
 }
 
-impl<R: Read> CsvParser<R> {
-    pub fn new(src: R, fec_version: String, sep: &Sep) -> Self {
+impl<R: Read> CsvReader<R> {
+    pub fn new(src: R, sep: &Sep) -> Self {
         let reader = ReaderBuilder::new()
             .delimiter(sep.to_byte())
             .has_headers(false)
             .flexible(true)
             .from_reader(src);
         Self {
-            fec_version,
-            records: reader.into_byte_records(),
+            records: reader.into_records(),
         }
     }
 
-    pub fn next_record(&mut self) -> Option<Result<Record, String>> {
-        let record_or_err: Result<csv::ByteRecord, csv::Error> = self.records.next()?;
+    /// Get the next raw line of the CSV file.
+    ///
+    /// Returns None if there are no more lines.
+    /// Returns Some(Err) if there was an error parsing the line.
+    /// Returns Some(Ok) if the line was parsed successfully.
+    ///
+    /// The Ok value is a Vec<&str> of the fields in the line.
+    /// The caller is responsible for converting the fields to the correct types.
+    pub fn next_line(&mut self) -> Option<Result<Vec<String>, String>> {
+        let record_or_err = self.records.next()?;
         log::debug!("raw_record: {:?}", record_or_err);
-        let record: csv::ByteRecord = match record_or_err {
-            Ok(record) => record,
+        let strings: Vec<String> = match record_or_err {
             Err(e) => return Some(Err(e.to_string())),
+            Ok(record) => record.iter().map(|s| s.to_string()).collect(),
         };
-        let raw_fields: Result<Vec<&str>, Utf8Error> = record.into_iter().map(from_utf8).collect();
-        let fields = match raw_fields {
-            Ok(fields) => fields,
-            Err(e) => return Some(Err(e.to_string())),
-        };
-        let record = parse(&self.fec_version, &mut fields.into_iter());
-        Some(record)
+        Some(Ok(strings))
     }
 }
