@@ -8,7 +8,7 @@ pub enum Value {
     String(String),
     Integer(i64),
     Float(f64),
-    Date(String),
+    Date(chrono::NaiveDate),
     Boolean(bool),
 }
 
@@ -18,7 +18,7 @@ impl fmt::Display for Value {
             Value::String(s) => write!(f, "{}", s),
             Value::Integer(i) => write!(f, "{}", i),
             Value::Float(fl) => write!(f, "{}", fl),
-            Value::Date(d) => write!(f, "{}", d),
+            Value::Date(d) => write!(f, "{}", d.format("%Y-%m-%d")),
             Value::Boolean(b) => write!(f, "{}", b),
         }
     }
@@ -137,11 +137,16 @@ fn parse_raw_field_val(
             let f = raw.parse::<f64>().map_err(|e| e.to_string())?;
             crate::record::Value::Float(f)
         }
-        crate::record::ValueType::Date => crate::record::Value::Date(raw.to_string()),
+        crate::record::ValueType::Date => crate::record::Value::Date(parse_date(raw)?),
         crate::record::ValueType::Boolean => {
             let b = raw.parse::<bool>().map_err(|e| e.to_string())?;
             crate::record::Value::Boolean(b)
         }
     };
     Ok(parsed_val)
+}
+
+fn parse_date(raw: &str) -> Result<chrono::NaiveDate, String> {
+    let date = chrono::NaiveDate::parse_from_str(raw, "%Y%m%d").map_err(|e| e.to_string())?;
+    Ok(date)
 }
