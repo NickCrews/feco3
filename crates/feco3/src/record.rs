@@ -24,8 +24,20 @@ impl fmt::Display for Value {
     }
 }
 
+impl Value {
+    pub fn typ(&self) -> ValueType {
+        match self {
+            Value::String(_) => ValueType::String,
+            Value::Integer(_) => ValueType::Integer,
+            Value::Float(_) => ValueType::Float,
+            Value::Date(_) => ValueType::Date,
+            Value::Boolean(_) => ValueType::Boolean,
+        }
+    }
+}
+
 /// Similar to Value, but just store the type of the value, not the value itself.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ValueType {
     String,
     Integer,
