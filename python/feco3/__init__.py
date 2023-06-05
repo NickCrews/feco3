@@ -17,7 +17,7 @@ class Header:
 @dataclass
 class Cover:
     form_type: str
-    filer_committee_id_number: str
+    filer_committee_id: str
 
 class FecFile:
 
@@ -47,7 +47,7 @@ class FecFile:
         c = self._wrapped.cover
         return Cover(
             form_type=c.form_type,
-            filer_committee_id_number=c.filer_committee_id_number,
+            filer_committee_id=c.filer_committee_id,
         )
 
 

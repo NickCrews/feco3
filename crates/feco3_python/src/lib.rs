@@ -46,7 +46,7 @@ impl Cover {
     }
 
     #[getter]
-    fn filer_committee_id_number(&self) -> PyResult<String> {
+    fn filer_committee_id(&self) -> PyResult<String> {
         Ok(self.0.filer_committee_id.clone())
     }
 }
