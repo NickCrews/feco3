@@ -1,7 +1,9 @@
 use parquet::{arrow::ArrowWriter, file::properties::WriterProperties};
 use std::{fs::File, path::PathBuf, sync::Arc};
 
+use crate::schemas::{CoercingLineParser, LineParser};
 use crate::{record::RecordSchema, writers::base::RecordWriter};
+use crate::{Error, FecFile};
 
 use super::arrow::{record_schema_to_arrow_schema, RecordBatchWriter};
 use super::base::{FileRecordWriterFactory, MultiFileRecordWriterFactory, MultiRecordWriter};
@@ -47,13 +49,13 @@ impl RecordWriter for ParquetWriter {
         Ok(())
     }
 
-    fn finish(&mut self) -> Result<(), crate::Error> {
+    fn finish(&mut self) -> Result<(), Error> {
         self.write_batch()?;
         let writer = self.writer.take().expect("writing to a closed writer");
         writer
             .close()
             // FIXME
-            .map_err(|e| crate::Error::RecordParseError(e.to_string()))?;
+            .map_err(|e| Error::RecordParseError(e.to_string()))?;
         Ok(())
     }
 }
@@ -81,13 +83,30 @@ impl FileRecordWriterFactory for ParquetWriterFactory {
     }
 }
 
-pub fn parquet_files_writer(
-    out_dir: PathBuf,
-    writer_props: Option<WriterProperties>,
-) -> MultiRecordWriter {
-    let factory = ParquetWriterFactory {
-        props: writer_props,
-    };
-    let f2 = MultiFileRecordWriterFactory::new(out_dir, Box::new(factory));
-    MultiRecordWriter::new(Box::new(f2))
+/// Processes an entire FEC file, writing each form to a separate file.
+pub struct ParquetProcessor {
+    writer: MultiRecordWriter,
+}
+
+impl ParquetProcessor {
+    pub fn new(out_dir: PathBuf, writer_props: Option<WriterProperties>) -> Self {
+        let factory = ParquetWriterFactory {
+            props: writer_props,
+        };
+        let f2 = MultiFileRecordWriterFactory::new(out_dir, Box::new(factory));
+        let writer = MultiRecordWriter::new(Box::new(f2));
+        Self { writer }
+    }
+
+    pub fn process(&mut self, fec: &mut FecFile) -> Result<(), Error> {
+        let fec_version = fec.get_header()?.fec_version.clone();
+        let mut parser = CoercingLineParser;
+        for line in fec.lines() {
+            let line = line?;
+            let record = parser.parse_line(&fec_version, &mut line.iter())?;
+            self.writer.write_record(&record)?;
+        }
+        self.writer.finish()?;
+        Ok(())
+    }
 }

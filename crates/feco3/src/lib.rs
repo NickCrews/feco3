@@ -33,24 +33,13 @@ pub use crate::fec::FecFile;
 pub use crate::fec::LineIter;
 pub use crate::header::Header;
 pub use crate::record::Record;
-use crate::schemas::CoercingLineParser;
-use crate::schemas::LineParser;
-use crate::writers::base::RecordWriter;
 
 pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), crate::Error> {
     let mut fec = fec::FecFile::from_path(fec_path)?;
     println!("header: {:?}", fec.get_header()?);
     println!("cover: {:?}", fec.get_cover()?);
-    let fec_version = fec.get_header()?.fec_version.clone();
-    let mut writer = writers::parquet::parquet_files_writer(out_dir, None);
-    let mut parser = CoercingLineParser;
-    // let mut writer = writers::csv::csv_files_writer(out_dir);
-    for line in fec.lines() {
-        let line = line?;
-        let record = parser.parse_line(&fec_version, &mut line.iter())?;
-        writer.write_record(&record)?;
-    }
-    writer.finish()?;
+    let mut processor = writers::parquet::ParquetProcessor::new(out_dir, None);
+    processor.process(&mut fec)?;
     Ok(())
 }
 
