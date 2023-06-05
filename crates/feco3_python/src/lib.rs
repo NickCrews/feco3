@@ -77,21 +77,12 @@ impl ParquetProcessor {
     }
 }
 
-#[pyfunction]
-fn parse_from_path(fec_path: PathBuf, out_dir: PathBuf) -> PyResult<()> {
-    match feco3::parse_from_path(&fec_path, out_dir) {
-        Ok(()) => Ok(()),
-        Err(e) => Err(to_py_err(e)),
-    }
-}
-
 #[pymodule]
 fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
     // It is important to initialize the Python loggers first,
     // before calling any Rust functions that may log.
     // See https://pyo3.rs/v0.18.3/ecosystem/logging
     pyo3_log::init();
-    m.add_function(wrap_pyfunction!(parse_from_path, m)?)?;
     m.add_class::<FecFile>()?;
     m.add_class::<ParquetProcessor>()?;
     Ok(())

@@ -15,8 +15,6 @@
 //! There are bindings for python available
 //! [on the repo](https://github.com/NickCrews/feco3).
 
-use std::path::PathBuf;
-
 #[macro_use]
 extern crate lazy_static;
 
@@ -33,15 +31,6 @@ pub use crate::fec::FecFile;
 pub use crate::fec::LineIter;
 pub use crate::header::Header;
 pub use crate::record::Record;
-
-pub fn parse_from_path(fec_path: &PathBuf, out_dir: PathBuf) -> Result<(), crate::Error> {
-    let mut fec = fec::FecFile::from_path(fec_path)?;
-    println!("header: {:?}", fec.get_header()?);
-    println!("cover: {:?}", fec.get_cover()?);
-    let mut processor = writers::parquet::ParquetProcessor::new(out_dir, None);
-    processor.process(&mut fec)?;
-    Ok(())
-}
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
