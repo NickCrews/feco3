@@ -15,7 +15,7 @@ pub trait RecordWriter: Send {
 }
 
 pub trait RecordWriterFactory: Send {
-    fn make(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>>;
+    fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>>;
 }
 
 /// Creates [RecordWriter]s that write to a filea.
@@ -52,7 +52,7 @@ impl MultiRecordWriter {
     fn get_writer(&mut self, schema: &RecordSchema) -> std::io::Result<&mut Box<dyn RecordWriter>> {
         Ok(match self.writers.entry(schema.clone()) {
             Occupied(e) => e.into_mut(),
-            Vacant(e) => e.insert(self.factory.make(schema)?),
+            Vacant(e) => e.insert(self.factory.make_writer(schema)?),
         })
     }
 }
@@ -83,7 +83,7 @@ impl MultiFileRecordWriterFactory {
 }
 
 impl RecordWriterFactory for MultiFileRecordWriterFactory {
-    fn make(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>> {
+    fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>> {
         let form_name = self.factory.norm_form_name(&schema.code);
         let file_name = self.factory.file_name(form_name);
         let path = self.base_path.join(file_name);
