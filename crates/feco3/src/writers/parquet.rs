@@ -19,11 +19,6 @@ use crate::{
 
 use super::base::{FileRecordWriterFactory, MultiFileRecordWriterFactory, MultiRecordWriter};
 
-pub struct ParquetWriter {
-    // arrow_schema: Arc<Schema>,
-    writer: Option<ArrowWriter<File>>,
-}
-
 fn value_type_to_arrow_type(vt: &ValueType) -> DataType {
     match vt {
         ValueType::String => DataType::Utf8,
@@ -66,6 +61,10 @@ fn record_to_arrow_record(record: &Record) -> RecordBatch {
         .zip(is_null)
         .map(|((name, array), is_null)| (name, array, is_null));
     RecordBatch::try_from_iter_with_nullable(together).unwrap()
+}
+
+pub struct ParquetWriter {
+    writer: Option<ArrowWriter<File>>,
 }
 
 impl ParquetWriter {
