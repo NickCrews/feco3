@@ -6,6 +6,18 @@ import os
 
 import _feco3
 
+@dataclass
+class Header:
+    fec_version: str
+    software_name: str
+    software_version: str | None
+    report_id: str | None
+    report_number: str | None
+
+@dataclass
+class Cover:
+    form_type: str
+    filer_committee_id_number: str
 
 class FecFile:
 
@@ -30,19 +42,19 @@ class FecFile:
             report_number=h.report_number,
         )
 
+    @cached_property
+    def cover(self) -> Cover:
+        c = self._wrapped.cover
+        return Cover(
+            form_type=c.form_type,
+            filer_committee_id_number=c.filer_committee_id_number,
+        )
+
 
     def __repr__(self) -> str:
         src_str = f"src={self._src!r}"
         return f"{self.__class__.__name__}({src_str})"
 
-
-@dataclass
-class Header:
-    fec_version: str
-    software_name: str
-    software_version: str | None
-    report_id: str | None
-    report_number: str | None
 
 
 class ParquetProcessor:

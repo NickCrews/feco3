@@ -36,6 +36,22 @@ impl Header {
 }
 
 #[pyclass]
+struct Cover(feco3::Cover);
+
+#[pymethods]
+impl Cover {
+    #[getter]
+    fn form_type(&self) -> PyResult<String> {
+        Ok(self.0.form_type.clone())
+    }
+
+    #[getter]
+    fn filer_committee_id_number(&self) -> PyResult<String> {
+        Ok(self.0.filer_committee_id.clone())
+    }
+}
+
+#[pyclass]
 struct FecFile(feco3::FecFile);
 
 #[pymethods]
@@ -52,6 +68,14 @@ impl FecFile {
     fn header(&mut self) -> PyResult<Header> {
         match self.0.get_header() {
             Ok(header) => Ok(Header(header.clone())),
+            Err(e) => Err(to_py_err(e)),
+        }
+    }
+
+    #[getter]
+    fn cover(&mut self) -> PyResult<Cover> {
+        match self.0.get_cover() {
+            Ok(cover) => Ok(Cover(cover.clone())),
             Err(e) => Err(to_py_err(e)),
         }
     }

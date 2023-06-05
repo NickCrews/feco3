@@ -7,10 +7,13 @@ use crate::record::Record;
 use crate::schemas::{LineParser, LiteralLineParser};
 use crate::Error;
 
+/// Summary information about the filing.
 #[derive(Debug, Clone, Default)]
 pub struct Cover {
-    form_type: String,
-    filer_committee_id_number: String,
+    /// What form is this .fec file, eg "F3X"
+    pub form_type: String,
+    /// Who filed this .fec file, eg "C00101766"
+    pub filer_committee_id: String,
 }
 
 pub fn parse_cover_line<'a>(
@@ -20,10 +23,9 @@ pub fn parse_cover_line<'a>(
     let mut cover = Cover::default();
     let line = line.collect::<Vec<&String>>();
     log::debug!("parsing cover line {} {:?}", fec_version, line);
-    println!("parsing cover line {} {:?}", fec_version, line);
     let record = LiteralLineParser.parse_line(fec_version, &mut line.into_iter())?;
     cover.form_type = record.line_code.clone();
-    cover.filer_committee_id_number = get(&record, "filer_committee_id_number")?;
+    cover.filer_committee_id = get(&record, "filer_committee_id_number")?;
     Ok(cover)
 }
 
