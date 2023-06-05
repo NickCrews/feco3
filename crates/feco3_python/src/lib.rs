@@ -5,6 +5,37 @@ use pyo3::{
 use std::path::PathBuf;
 
 #[pyclass]
+struct Header(feco3::Header);
+
+#[pymethods]
+impl Header {
+    #[getter]
+    fn fec_version(&self) -> PyResult<String> {
+        Ok(self.0.fec_version.clone())
+    }
+
+    #[getter]
+    fn software_name(&self) -> PyResult<String> {
+        Ok(self.0.software_name.clone())
+    }
+
+    #[getter]
+    fn software_version(&self) -> PyResult<Option<String>> {
+        Ok(self.0.software_version.clone())
+    }
+
+    #[getter]
+    fn report_id(&self) -> PyResult<Option<String>> {
+        Ok(self.0.report_id.clone())
+    }
+
+    #[getter]
+    fn report_number(&self) -> PyResult<Option<String>> {
+        Ok(self.0.report_number.clone())
+    }
+}
+
+#[pyclass]
 struct FecFile(feco3::FecFile);
 
 #[pymethods]
@@ -13,6 +44,34 @@ impl FecFile {
     fn from_path(path: PathBuf) -> PyResult<Self> {
         match feco3::FecFile::from_path(&path) {
             Ok(fec_file) => Ok(FecFile(fec_file)),
+            Err(e) => Err(to_py_err(e)),
+        }
+    }
+
+    #[getter]
+    fn header(&mut self) -> PyResult<Header> {
+        match self.0.get_header() {
+            Ok(header) => Ok(Header(header.clone())),
+            Err(e) => Err(to_py_err(e)),
+        }
+    }
+}
+
+#[pyclass]
+struct ParquetProcessor(feco3::writers::parquet::ParquetProcessor);
+
+#[pymethods]
+impl ParquetProcessor {
+    #[new]
+    fn new(out_dir: PathBuf) -> Self {
+        let writer_props = None;
+        let processor = feco3::writers::parquet::ParquetProcessor::new(out_dir, writer_props);
+        Self(processor)
+    }
+
+    fn process(&mut self, fec_file: &mut FecFile) -> PyResult<()> {
+        match self.0.process(&mut fec_file.0) {
+            Ok(()) => Ok(()),
             Err(e) => Err(to_py_err(e)),
         }
     }
@@ -34,6 +93,7 @@ fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
     m.add_function(wrap_pyfunction!(parse_from_path, m)?)?;
     m.add_class::<FecFile>()?;
+    m.add_class::<ParquetProcessor>()?;
     Ok(())
 }
 

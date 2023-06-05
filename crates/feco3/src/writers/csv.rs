@@ -37,7 +37,7 @@ impl<W: std::io::Write> CSVFormWriter<W> {
     }
 }
 
-impl<W: std::io::Write> RecordWriter for CSVFormWriter<W> {
+impl<W: std::io::Write + Send> RecordWriter for CSVFormWriter<W> {
     fn write_record(&mut self, record: &Record) -> std::io::Result<()> {
         self.maybe_write_header()?;
         // TODO: Check the length of values vs the schema

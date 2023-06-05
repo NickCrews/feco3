@@ -7,19 +7,19 @@ use crate::Error;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 /// Writes single itemization records.
-pub trait RecordWriter {
+pub trait RecordWriter: Send {
     fn write_record(&mut self, record: &Record) -> std::io::Result<()>;
     fn finish(&mut self) -> Result<(), Error> {
         Ok(())
     }
 }
 
-pub trait RecordWriterFactory {
+pub trait RecordWriterFactory: Send {
     fn make(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>>;
 }
 
 /// Creates [RecordWriter]s that write to a filea.
-pub trait FileRecordWriterFactory {
+pub trait FileRecordWriterFactory: Send {
     fn file_name(&self, form_name: String) -> String;
     fn make(
         &mut self,
