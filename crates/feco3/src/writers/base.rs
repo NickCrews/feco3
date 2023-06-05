@@ -70,6 +70,7 @@ impl RecordWriter for MultiRecordWriter {
     }
 }
 
+//// A [FileRecordWriterFactory] that creates a new [FileRecordWriter] for new form.
 pub struct MultiFileRecordWriterFactory {
     base_path: PathBuf,
     factory: Box<dyn FileRecordWriterFactory>,
