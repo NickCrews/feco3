@@ -24,14 +24,18 @@ pub struct ParquetWriter {
     writer: Option<ArrowWriter<File>>,
 }
 
-fn field_schema_to_arrow_field(fs: &FieldSchema) -> Field {
-    match fs.typ {
-        ValueType::String => Field::new(fs.name.clone(), DataType::Utf8, true),
-        ValueType::Integer => Field::new(fs.name.clone(), DataType::Int64, true),
-        ValueType::Float => Field::new(fs.name.clone(), DataType::Float64, true),
-        ValueType::Date => Field::new(fs.name.clone(), DataType::Date32, true),
-        ValueType::Boolean => Field::new(fs.name.clone(), DataType::Boolean, true),
+fn value_type_to_arrow_type(vt: &ValueType) -> DataType {
+    match vt {
+        ValueType::String => DataType::Utf8,
+        ValueType::Integer => DataType::Int64,
+        ValueType::Float => DataType::Float64,
+        ValueType::Date => DataType::Date32,
+        ValueType::Boolean => DataType::Boolean,
     }
+}
+
+fn field_schema_to_arrow_field(fs: &FieldSchema) -> Field {
+    Field::new(fs.name.clone(), value_type_to_arrow_type(&fs.typ), true)
 }
 
 fn record_schema_to_arrow_schema(rs: &RecordSchema) -> Schema {
