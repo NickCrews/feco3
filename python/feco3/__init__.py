@@ -5,10 +5,14 @@ from functools import cached_property
 import os
 from typing import TYPE_CHECKING
 
+
+from . import _version
 from . import _feco3
 
 if TYPE_CHECKING:
     import pyarrow as pa
+
+__version__ = _version.get_version()
 
 
 @dataclass

@@ -12,6 +12,9 @@ readme = "README.md"
 authors = [
   {name = "Nick Crews", email = "nicholas.b.crews@gmail.com"},
 ]
+dependencies = [
+  "importlib_metadata; python_version < '3.8'",
+]
 keywords = ["fec", "fec-file", "rust", "pyo3", "arrow", "pyarrow"]
 classifiers = [
     "Programming Language :: Rust",
