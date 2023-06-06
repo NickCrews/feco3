@@ -2,6 +2,7 @@
 members = ["crates/*"]
 
 [workspace.package]
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.69"
 homepage = "https://github.com/NickCrews/feco3"

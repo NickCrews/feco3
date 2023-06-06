@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "feco3"
 # TODO make this dynamic
-version = "0.1.0"
+version = "0.3.0"
 description = "A Rust-backed Python library for parsing .fec files."
 requires-python = ">=3.7"
 readme = "README.md"
