@@ -10,11 +10,11 @@ use arrow::{
 use std::sync::Arc;
 
 use crate::schemas::{CoercingLineParser, LineParser};
-use crate::{record, Error, FecFile, Record};
 use crate::{
     record::{FieldSchema, RecordSchema, Value, ValueType},
     writers::base::RecordWriter,
 };
+use crate::{Error, FecFile, Record};
 
 use super::base::{MultiRecordWriter, RecordWriterFactory};
 
@@ -117,7 +117,7 @@ impl RecordWriterFactory for RecordBatchWriterFactory {
     }
 }
 
-struct RecordBatchProcessor {
+pub struct RecordBatchProcessor {
     multi_writer: MultiRecordWriter<RecordBatchWriterFactory>,
     capacity: usize,
 }
@@ -132,50 +132,44 @@ impl RecordBatchProcessor {
         }
     }
 
-    // pub fn next_batch(&mut self, fec: &mut FecFile) -> Result<Option<RecordBatch>, Error> {
-    //     match self.read_until(fec) {
-    //         Some(w) => return w.build_batch(),
-    //         None => {}
-    //     }
+    pub fn next_batch(&mut self, fec: &mut FecFile) -> Result<Option<RecordBatch>, Error> {
+        // TODO: This is inefficient to just try reading, and then look through
+        // all our writers to see if any have data. We should instead return the one
+        // that filled up.
+        self.read_until(fec)?;
 
-    //     // for (_schema, form_writer) in self.writer.writers.iter_mut() {
-    //     //     let writer = form_writer
-    //     //         .as_any()
-    //     //         .downcast_mut::<RecordBatchWriter>()
-    //     //         .unwrap();
-    //     //     if writer.len() > 0 {
-    //     //         return Ok(Some(writer.build_batch()));
-    //     //     }
-    //     // }
-    //     Ok(None)
-    // }
+        for (_schema, form_writer) in self.multi_writer.writers.iter_mut() {
+            if form_writer.len() > 0 {
+                return Ok(Some(form_writer.build_batch()));
+            }
+        }
+        Ok(None)
+    }
 
     // Read from the FecFile until we have a full batch or we reach the end of the file.
-    // Return the writer that got filled up, or None if we reached the end of the file.
-    // fn read_until<'a>(
-    //     &'a mut self,
-    //     fec: &mut FecFile,
-    // ) -> Result<Option<&'a RecordBatchWriter>, Error> {
-    //     let mut parser = CoercingLineParser;
-    //     let fec_version = fec.get_header()?.fec_version.clone();
-    //     let mut multi_writer = &mut self.multi_writer;
-    //     loop {
-    //         let line = match fec.next_line() {
-    //             Some(Ok(line)) => line,
-    //             Some(Err(e)) => return Err(e),
-    //             None => {
-    //                 // multi_writer.finish();
-    //                 return Ok(None);
-    //             }
-    //         };
-    //         let record = parser.parse_line(&fec_version, &mut line.iter())?;
-    //         let writer = multi_writer.get_writer(&record.schema)?;
-    //         writer.write_record(&record)?;
-    //         if writer.len() >= self.capacity {
-    //             return Ok(Some(writer));
-    //         }
-    //     }
-    // }
+    // Return the number of records read.
+    fn read_until(&mut self, fec: &mut FecFile) -> Result<usize, Error> {
+        let mut parser = CoercingLineParser;
+        let fec_version = fec.get_header()?.fec_version.clone();
+        let multi_writer = &mut self.multi_writer;
+        let mut n_read = 0;
+        loop {
+            let line = match fec.next_line() {
+                Some(Ok(line)) => line,
+                Some(Err(e)) => return Err(e),
+                None => {
+                    return Ok(n_read);
+                }
+            };
+            let record = parser.parse_line(&fec_version, &mut line.iter())?;
+            let writer = multi_writer.get_writer(&record.schema)?;
+            writer.write_record(&record)?;
+            n_read += 1;
+            if writer.len() >= self.capacity {
+                return Ok(n_read);
+            }
+        }
+    }
 }
 
 fn builders_from_schema(schema: &Schema, capacity: usize) -> Vec<Box<dyn ArrayBuilder>> {
