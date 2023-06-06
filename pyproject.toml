@@ -4,12 +4,35 @@ build-backend = "maturin"
 
 [project]
 name = "feco3"
+# TODO make this dynamic
+version = "0.1.0"
+description = "A Rust-backed Python library for parsing .fec files."
 requires-python = ">=3.7"
+readme = "README.md"
+authors = [
+  {name = "Nick Crews", email = "nicholas.b.crews@gmail.com"},
+]
+keywords = ["fec", "fec-file", "rust", "pyo3", "arrow", "pyarrow"]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: File Formats",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Text Processing",
 ]
+
+[project.urls]
+# Homepage = "https://example.com"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/NickCrews/feco3"
+# Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+
+[project.optional-dependencies]
+arrow = ["pyarrow"]
 
 # inspired by
 # https://github.com/apache/incubator-opendal/blob/main/bindings/python/pyproject.toml

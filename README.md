@@ -2,6 +2,8 @@
 
 A .FEC file parser in rust, with python bindings
 
+Still in alpha.
+
 ## Related projects
 
 Please open an issue or PR if you'd like to add or edit this list.
