@@ -1,8 +1,8 @@
 [package]
 name = "feco3"
-version = "0.2.0"
+version = "0.3.0"
 license = "Apache-2.0"
-description = "A library for working with FEC data"
+description = "A library for working with .fec files"
 readme = "README.md"
 edition = {workspace = true}
 homepage = {workspace = true}
@@ -13,6 +13,7 @@ repository = {workspace = true}
 [lib]
 name = "feco3"
 
+# TODO: put some of these under feature flags?
 [dependencies]
 bytelines = "2.4"
 chrono = "0.4"
