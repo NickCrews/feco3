@@ -7,4 +7,4 @@ want you to waste your time writing a PR that I then decide
 to reject because it doesn't fit the project.
 
 Unless you state otherwise, all contributions will be
-licensed under the MIT license.
+licensed under the specified license.
