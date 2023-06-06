@@ -1,7 +1,11 @@
 use super::base::{
     FileRecordWriterFactory, MultiFileRecordWriterFactory, MultiRecordWriter, RecordWriter,
 };
-use crate::record::{Record, RecordSchema};
+use crate::{
+    record::{Record, RecordSchema},
+    schemas::{CoercingLineParser, LineParser},
+    Error, FecFile,
+};
 use std::{fs::File, path::PathBuf};
 
 /// A [RecordWriter] that writes to CSV format.
@@ -50,23 +54,40 @@ impl<W: std::io::Write + Send> RecordWriter for CSVFormWriter<W> {
 struct CSVFileWriterFactory;
 
 impl FileRecordWriterFactory for CSVFileWriterFactory {
+    type Writer = CSVFormWriter<File>;
     fn file_name(&self, form_name: String) -> String {
         format!("{}.csv", form_name)
     }
 
-    fn make(
-        &mut self,
-        path: &PathBuf,
-        schema: &RecordSchema,
-    ) -> std::io::Result<Box<dyn RecordWriter>> {
+    fn make(&mut self, path: &PathBuf, schema: &RecordSchema) -> std::io::Result<Self::Writer> {
         let file = File::create(path)?;
         let writer = CSVFormWriter::new(file, schema);
-        Ok(Box::new(writer))
+        Ok(writer)
     }
 }
 
-pub fn csv_files_writer(out_dir: PathBuf) -> MultiRecordWriter {
-    let factory = Box::new(CSVFileWriterFactory);
-    let f2 = MultiFileRecordWriterFactory::new(out_dir, factory);
-    MultiRecordWriter::new(Box::new(f2))
+pub struct CSVProcessor {
+    multi_writer: MultiRecordWriter<MultiFileRecordWriterFactory<CSVFileWriterFactory>>,
+}
+
+impl CSVProcessor {
+    pub fn new(out_dir: PathBuf) -> Self {
+        let factory = CSVFileWriterFactory;
+        let f2 = MultiFileRecordWriterFactory::new(out_dir, factory);
+        let multi_writer = MultiRecordWriter::new(f2);
+        Self { multi_writer }
+    }
+
+    // TODO: factor this out with ParquetProcessor.process()
+    pub fn process(&mut self, fec: &mut FecFile) -> Result<(), Error> {
+        let fec_version = fec.get_header()?.fec_version.clone();
+        let mut parser = CoercingLineParser;
+        for line in fec.lines() {
+            let line = line?;
+            let record = parser.parse_line(&fec_version, &mut line.iter())?;
+            self.multi_writer.write_record(&record)?;
+        }
+        self.multi_writer.finish()?;
+        Ok(())
+    }
 }

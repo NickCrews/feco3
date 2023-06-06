@@ -9,11 +9,14 @@ use arrow::{
 };
 use std::sync::Arc;
 
-use crate::Record;
+use crate::schemas::{CoercingLineParser, LineParser};
+use crate::{record, Error, FecFile, Record};
 use crate::{
     record::{FieldSchema, RecordSchema, Value, ValueType},
     writers::base::RecordWriter,
 };
+
+use super::base::{MultiRecordWriter, RecordWriterFactory};
 
 /// Convert a [ValueType] into the arrow equivalent, an arrow [DataType].
 pub fn value_type_to_arrow_type(vt: &ValueType) -> DataType {
@@ -62,7 +65,7 @@ impl RecordBatchWriter {
     }
 
     /// Build and return the accumulated [RecordBatch], and reset itself.
-    pub fn finish(&mut self) -> RecordBatch {
+    pub fn build_batch(&mut self) -> RecordBatch {
         let arrays = self
             .builders
             .iter_mut()
@@ -95,6 +98,84 @@ impl RecordWriter for RecordBatchWriter {
     fn finish(&mut self) -> Result<(), crate::Error> {
         Ok(())
     }
+}
+
+struct RecordBatchWriterFactory {
+    capacity: usize,
+}
+
+impl RecordBatchWriterFactory {
+    pub fn new(capacity: usize) -> Self {
+        Self { capacity }
+    }
+}
+
+impl RecordWriterFactory for RecordBatchWriterFactory {
+    type Writer = RecordBatchWriter;
+    fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<Self::Writer> {
+        Ok(RecordBatchWriter::new(schema.clone(), self.capacity))
+    }
+}
+
+struct RecordBatchProcessor {
+    multi_writer: MultiRecordWriter<RecordBatchWriterFactory>,
+    capacity: usize,
+}
+
+impl RecordBatchProcessor {
+    pub fn new(capacity: usize) -> Self {
+        let factory = RecordBatchWriterFactory::new(capacity);
+        let writer = MultiRecordWriter::new(factory);
+        Self {
+            multi_writer: writer,
+            capacity,
+        }
+    }
+
+    // pub fn next_batch(&mut self, fec: &mut FecFile) -> Result<Option<RecordBatch>, Error> {
+    //     match self.read_until(fec) {
+    //         Some(w) => return w.build_batch(),
+    //         None => {}
+    //     }
+
+    //     // for (_schema, form_writer) in self.writer.writers.iter_mut() {
+    //     //     let writer = form_writer
+    //     //         .as_any()
+    //     //         .downcast_mut::<RecordBatchWriter>()
+    //     //         .unwrap();
+    //     //     if writer.len() > 0 {
+    //     //         return Ok(Some(writer.build_batch()));
+    //     //     }
+    //     // }
+    //     Ok(None)
+    // }
+
+    // Read from the FecFile until we have a full batch or we reach the end of the file.
+    // Return the writer that got filled up, or None if we reached the end of the file.
+    // fn read_until<'a>(
+    //     &'a mut self,
+    //     fec: &mut FecFile,
+    // ) -> Result<Option<&'a RecordBatchWriter>, Error> {
+    //     let mut parser = CoercingLineParser;
+    //     let fec_version = fec.get_header()?.fec_version.clone();
+    //     let mut multi_writer = &mut self.multi_writer;
+    //     loop {
+    //         let line = match fec.next_line() {
+    //             Some(Ok(line)) => line,
+    //             Some(Err(e)) => return Err(e),
+    //             None => {
+    //                 // multi_writer.finish();
+    //                 return Ok(None);
+    //             }
+    //         };
+    //         let record = parser.parse_line(&fec_version, &mut line.iter())?;
+    //         let writer = multi_writer.get_writer(&record.schema)?;
+    //         writer.write_record(&record)?;
+    //         if writer.len() >= self.capacity {
+    //             return Ok(Some(writer));
+    //         }
+    //     }
+    // }
 }
 
 fn builders_from_schema(schema: &Schema, capacity: usize) -> Vec<Box<dyn ArrayBuilder>> {

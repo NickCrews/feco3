@@ -35,7 +35,7 @@ impl ParquetWriter {
 
     fn write_batch(&mut self) -> std::io::Result<()> {
         let writer = self.writer.as_mut().expect("writing to a closed writer");
-        writer.write(&self.batcher.finish())?;
+        writer.write(&self.batcher.build_batch())?;
         Ok(())
     }
 }
@@ -66,26 +66,19 @@ pub struct ParquetWriterFactory {
 }
 
 impl FileRecordWriterFactory for ParquetWriterFactory {
+    type Writer = ParquetWriter;
     fn file_name(&self, form_name: String) -> String {
         format!("{}.parquet", form_name)
     }
-    fn make(
-        &mut self,
-        path: &PathBuf,
-        schema: &RecordSchema,
-    ) -> std::io::Result<Box<dyn RecordWriter>> {
+    fn make(&mut self, path: &PathBuf, schema: &RecordSchema) -> std::io::Result<Self::Writer> {
         let file = File::create(path)?;
-        Ok(Box::new(ParquetWriter::new(
-            file,
-            schema,
-            self.props.clone(),
-        )?))
+        Ok(ParquetWriter::new(file, schema, self.props.clone())?)
     }
 }
 
 /// Processes an entire FEC file, writing each form to a separate file.
 pub struct ParquetProcessor {
-    writer: MultiRecordWriter,
+    writer: MultiRecordWriter<MultiFileRecordWriterFactory<ParquetWriterFactory>>,
 }
 
 impl ParquetProcessor {
@@ -93,8 +86,8 @@ impl ParquetProcessor {
         let factory = ParquetWriterFactory {
             props: writer_props,
         };
-        let f2 = MultiFileRecordWriterFactory::new(out_dir, Box::new(factory));
-        let writer = MultiRecordWriter::new(Box::new(f2));
+        let f2 = MultiFileRecordWriterFactory::new(out_dir, factory);
+        let writer = MultiRecordWriter::new(f2);
         Self { writer }
     }
 

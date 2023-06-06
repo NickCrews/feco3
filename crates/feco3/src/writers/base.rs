@@ -14,18 +14,19 @@ pub trait RecordWriter: Send {
     }
 }
 
+/// Creates [RecordWriter]s given a schema.
 pub trait RecordWriterFactory: Send {
-    fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>>;
+    type Writer: RecordWriter;
+    /// Create a new [RecordWriter] for a given schema.
+    fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<Self::Writer>;
 }
 
 /// Creates [RecordWriter]s that write to a filea.
 pub trait FileRecordWriterFactory: Send {
+    type Writer: RecordWriter;
     fn file_name(&self, form_name: String) -> String;
-    fn make(
-        &mut self,
-        path: &PathBuf,
-        schema: &RecordSchema,
-    ) -> std::io::Result<Box<dyn RecordWriter>>;
+    /// Make a new [RecordWriter] for a given schema that writes to the given path.
+    fn make(&mut self, path: &PathBuf, schema: &RecordSchema) -> std::io::Result<Self::Writer>;
 
     /// Some forms have a slash in their name, which is not allowed in file names.
     fn norm_form_name(&self, name: &str) -> String {
@@ -34,13 +35,13 @@ pub trait FileRecordWriterFactory: Send {
 }
 
 /// A [RecordWriter] that delegates to multiple [RecordWriter]s.
-pub struct MultiRecordWriter {
-    factory: Box<dyn RecordWriterFactory>,
-    writers: HashMap<RecordSchema, Box<dyn RecordWriter>>,
+pub struct MultiRecordWriter<F: RecordWriterFactory> {
+    factory: F,
+    pub writers: HashMap<RecordSchema, F::Writer>,
 }
 
-impl MultiRecordWriter {
-    pub fn new(factory: Box<dyn RecordWriterFactory>) -> Self {
+impl<F: RecordWriterFactory> MultiRecordWriter<F> {
+    pub fn new(factory: F) -> Self {
         Self {
             factory,
             writers: HashMap::new(),
@@ -49,7 +50,7 @@ impl MultiRecordWriter {
 
     // https://users.rust-lang.org/t/issue-with-hashmap-and-fallible-update/44960/8
     /// Get the existing writer for a schema, or create a new one if it doesn't exist.
-    fn get_writer(&mut self, schema: &RecordSchema) -> std::io::Result<&mut Box<dyn RecordWriter>> {
+    pub fn get_writer(&mut self, schema: &RecordSchema) -> std::io::Result<&mut F::Writer> {
         Ok(match self.writers.entry(schema.clone()) {
             Occupied(e) => e.into_mut(),
             Vacant(e) => e.insert(self.factory.make_writer(schema)?),
@@ -57,7 +58,7 @@ impl MultiRecordWriter {
     }
 }
 
-impl RecordWriter for MultiRecordWriter {
+impl<F: RecordWriterFactory> RecordWriter for MultiRecordWriter<F> {
     fn write_record(&mut self, record: &Record) -> std::io::Result<()> {
         let writer = self.get_writer(&record.schema)?;
         writer.write_record(record)
@@ -70,20 +71,21 @@ impl RecordWriter for MultiRecordWriter {
     }
 }
 
-//// A [FileRecordWriterFactory] that creates a new [FileRecordWriter] for new form.
-pub struct MultiFileRecordWriterFactory {
+/// A [RecordWriterFactory] that uses a new [FileRecordWriterFactory] for each new form.
+pub struct MultiFileRecordWriterFactory<F: FileRecordWriterFactory> {
     base_path: PathBuf,
-    factory: Box<dyn FileRecordWriterFactory>,
+    factory: F,
 }
 
-impl MultiFileRecordWriterFactory {
-    pub fn new(base_path: PathBuf, factory: Box<dyn FileRecordWriterFactory>) -> Self {
+impl<F: FileRecordWriterFactory> MultiFileRecordWriterFactory<F> {
+    pub fn new(base_path: PathBuf, factory: F) -> Self {
         Self { base_path, factory }
     }
 }
 
-impl RecordWriterFactory for MultiFileRecordWriterFactory {
-    fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<Box<dyn RecordWriter>> {
+impl<F: FileRecordWriterFactory> RecordWriterFactory for MultiFileRecordWriterFactory<F> {
+    type Writer = F::Writer;
+    fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<F::Writer> {
         let form_name = self.factory.norm_form_name(&schema.code);
         let file_name = self.factory.file_name(form_name);
         let path = self.base_path.join(file_name);
