@@ -8,7 +8,7 @@ name = "feco3"
 version = "0.3.0"
 description = "A Rust-backed Python library for parsing .fec files."
 requires-python = ">=3.7"
-readme = "README.md"
+readme = "../README.md"
 authors = [
   {name = "Nick Crews", email = "nicholas.b.crews@gmail.com"},
 ]
@@ -41,7 +41,6 @@ arrow = ["pyarrow"]
 # https://github.com/apache/incubator-opendal/blob/main/bindings/python/pyproject.toml
 [tool.maturin]
 module-name = "feco3._feco3"
-manifest-path = "crates/feco3_python/Cargo.toml"
-python-source = "python"
+manifest-path = "../crates/feco3_python/Cargo.toml"
 features = ["pyo3/extension-module"]
 strip = true
