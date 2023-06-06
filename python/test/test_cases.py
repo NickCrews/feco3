@@ -11,7 +11,8 @@ from typing import Any
 import pytest
 
 _THIS_DIR = Path(__file__).parent
-CASES_DIR = _THIS_DIR / "cases"
+_REPO_DIR = _THIS_DIR.parent.parent
+CASES_DIR = _REPO_DIR / "test/fecs"
 
 
 @dataclass
