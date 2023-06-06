@@ -465,6 +465,7 @@ dependencies = [
 name = "feco3_python"
 version = "0.1.0"
 dependencies = [
+ "arrow",
  "feco3",
  "pyo3",
  "pyo3-log",

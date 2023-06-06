@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from functools import cached_property
 
 import os
+import pyarrow as pa
 
 import _feco3
 
@@ -64,3 +65,17 @@ class ParquetProcessor:
 
     def process(self, fec_file: FecFile) -> None:
         self._wrapped.process(fec_file._wrapped)
+
+# This is what rust parquet uses as a batch size
+# https://docs.rs/parquet/40.0.0/src/parquet/file/properties.rs.html#83
+# DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
+DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
+
+class PyarrowProcessor:
+    def __init__(self, max_batch_size: int | None = None):
+        if max_batch_size is None:
+            max_batch_size = DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE
+        self._wrapped = _feco3.PyarrowProcessor(max_batch_size)
+
+    def next_batch(self, fec_file: FecFile) -> pa.RecordBatch:
+        return self._wrapped.next_batch(fec_file._wrapped)

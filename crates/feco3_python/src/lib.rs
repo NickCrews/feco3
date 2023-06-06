@@ -1,3 +1,5 @@
+use arrow::pyarrow::PyArrowType;
+use arrow::record_batch::RecordBatch;
 use pyo3::{
     exceptions::{PyIOError, PyValueError},
     prelude::*,
@@ -101,6 +103,27 @@ impl ParquetProcessor {
     }
 }
 
+#[pyclass]
+struct PyarrowProcessor(feco3::writers::arrow::RecordBatchProcessor);
+
+#[pymethods]
+impl PyarrowProcessor {
+    #[new]
+    fn new(batch_size: usize) -> Self {
+        let processor = feco3::writers::arrow::RecordBatchProcessor::new(batch_size);
+        Self(processor)
+    }
+
+    // Gets the next pyarrow record batch or None if there are no more records.
+    fn next_batch(&mut self, fec_file: &mut FecFile) -> PyResult<Option<PyArrowType<RecordBatch>>> {
+        match self.0.next_batch(&mut fec_file.0) {
+            Ok(Some(batch)) => Ok(Some(batch.into())),
+            Ok(None) => Ok(None),
+            Err(e) => Err(to_py_err(e)),
+        }
+    }
+}
+
 #[pymodule]
 fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
     // It is important to initialize the Python loggers first,
@@ -109,6 +132,7 @@ fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
     m.add_class::<FecFile>()?;
     m.add_class::<ParquetProcessor>()?;
+    m.add_class::<PyarrowProcessor>()?;
     Ok(())
 }
 
