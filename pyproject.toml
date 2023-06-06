@@ -11,10 +11,11 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
+# inspired by
+# https://github.com/apache/incubator-opendal/blob/main/bindings/python/pyproject.toml
 [tool.maturin]
-module-name = "_feco3"
+module-name = "feco3._feco3"
 manifest-path = "crates/feco3_python/Cargo.toml"
-python-packages = ["feco3", "_feco3"]
 python-source = "python"
 features = ["pyo3/extension-module"]
 strip = true

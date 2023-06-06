@@ -5,7 +5,7 @@ from functools import cached_property
 import os
 import pyarrow as pa
 
-import _feco3
+from . import _feco3
 
 @dataclass
 class Header:
