@@ -103,18 +103,21 @@ jobs:
           path: dist
 
   release:
-    name: Release
+    name: Release to PyPI
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: [linux, windows, macos, sdist]
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      # See https://docs.pypi.org/trusted-publishers/using-a-publisher/
+      id-token: write
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: wheels
       - name: Publish to PyPI
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          command: upload
-          args: --skip-existing *
+          packages-dir: wheels/
+          verbose: true
+          print-hash: true
