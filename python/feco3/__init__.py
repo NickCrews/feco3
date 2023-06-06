@@ -3,9 +3,13 @@ from dataclasses import dataclass
 from functools import cached_property
 
 import os
-import pyarrow as pa
+from typing import TYPE_CHECKING
 
 from . import _feco3
+
+if TYPE_CHECKING:
+    import pyarrow as pa
+
 
 @dataclass
 class Header:
@@ -15,13 +19,14 @@ class Header:
     report_id: str | None
     report_number: str | None
 
+
 @dataclass
 class Cover:
     form_type: str
     filer_committee_id: str
 
-class FecFile:
 
+class FecFile:
     def __init__(self, src: str | os.PathLike) -> None:
         """Create a new FecFile instance.
 
@@ -51,25 +56,24 @@ class FecFile:
             filer_committee_id=c.filer_committee_id,
         )
 
-
     def __repr__(self) -> str:
         src_str = f"src={self._src!r}"
         return f"{self.__class__.__name__}({src_str})"
 
 
-
 class ParquetProcessor:
-
     def __init__(self, out_dir: str | os.PathLike) -> None:
         self._wrapped = _feco3.ParquetProcessor(out_dir)
 
     def process(self, fec_file: FecFile) -> None:
         self._wrapped.process(fec_file._wrapped)
 
+
 # This is what rust parquet uses as a batch size
 # https://docs.rs/parquet/40.0.0/src/parquet/file/properties.rs.html#83
 # DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
 DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
+
 
 class PyarrowProcessor:
     def __init__(self, max_batch_size: int | None = None):
