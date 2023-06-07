@@ -15,7 +15,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-feco3 = "0.1.0"
+feco3 = "VERSION"
 ```
 
 Then:
@@ -23,7 +23,7 @@ Then:
 ```rust;
 
 fn main() {
-    let fec = feco3::parse_from_path("path/to/file.fec", "output_dir/").unwrap();
+    let fec = feco3::FecFile::from_path("path/to/file.fec")
     println!("{:?}", fec);
 }
 ```
