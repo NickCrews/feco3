@@ -55,7 +55,11 @@ impl<'a> LineParser<'a> for LiteralLineParser {
             let field_schema = field_schemas
                 .next()
                 .ok_or(Error::RecordParseError("too many values".to_string()))?;
-            let value = field_schema.typ.parse_to_value(Some(raw_value))?;
+            let rv = match raw_value.trim() {
+                "" => None,
+                s => Some(s.to_string()),
+            };
+            let value = field_schema.typ.parse_to_value(rv.as_ref())?;
             values.push(value);
         }
         let extra_schema_fields = field_schemas.count();

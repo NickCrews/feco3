@@ -12,7 +12,7 @@ use std::{
     str::{from_utf8, Utf8Error},
 };
 
-use crate::{csv::Sep, schemas::LineParser};
+use crate::{csv::Sep, record::Value, schemas::LineParser, Record};
 use bytelines::ByteLines;
 use std::result::Result;
 
@@ -83,6 +83,7 @@ pub fn parse_header(src: &mut impl Read) -> Result<HeaderParsing, HeaderParseErr
     } else {
         header = parse_nonlegacy_header(&first_line)
     }
+    log::debug!("Parsed header: {:?}", header);
     header.map_err(|e| HeaderParseError {
         message: e,
         read: read_bytes.clone(),
@@ -136,7 +137,12 @@ fn parse_legacy_header(
         match key.to_lowercase().as_str() {
             "fec_ver_#" => header.fec_version = value,
             "soft_name" => header.software_name = value,
-            "soft_ver#" => header.software_version = Some(value),
+            "soft_ver#" => {
+                header.software_version = match value.as_str() {
+                    "" => None,
+                    _ => Some(value),
+                }
+            }
             _ => {}
         }
     }
@@ -196,18 +202,21 @@ fn parse_nonlegacy_header(line: &Vec<u8>) -> Result<HeaderParsing, String> {
         }
         _ => parts[1],
     };
+    if version.is_empty() {
+        return Err(format!("empty version in header: {:?}", parts));
+    }
     let string_parts = parts.iter().map(|s| s.to_string()).collect::<Vec<String>>();
     let record = LiteralLineParser
         .parse_line(version, &mut string_parts.iter())
         .map_err(|e| e.to_string())?;
     header.fec_version = version.to_string();
-    header.software_name = record
-        .get_value("soft_name")
-        .ok_or("missing soft_name")?
-        .to_string();
-    header.software_version = record.get_value("soft_ver").map(|s| s.to_string());
-    header.report_id = record.get_value("report_id").map(|s| s.to_string());
-    header.report_number = record.get_value("report_number").map(|s| s.to_string());
+    header.software_name = get_string_value_strict(&record, "soft_name")?
+        .as_ref()
+        .ok_or("software name is empty")?
+        .clone();
+    header.software_version = get_string_value_strict(&record, "soft_ver")?.clone();
+    header.report_id = get_string_value_strict(&record, "report_id")?.clone();
+    header.report_number = get_string_value_strict(&record, "report_number")?.clone();
     Ok(HeaderParsing { header, sep })
 }
 
@@ -236,4 +245,20 @@ fn byte_slice_contains(haystack: &[u8], needle: &[u8]) -> bool {
 
 fn byte_slice_to_string(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).to_string()
+}
+
+fn get_string_value_strict<'a>(
+    record: &'a Record,
+    key: &str,
+) -> Result<&'a Option<String>, String> {
+    let value = record
+        .get_value(key)
+        .ok_or(format!("missing field '{}' in record {:?}", key, record))?;
+    match value {
+        Value::String(option_string) => Ok(option_string),
+        _ => Err(format!(
+            "expected Value::String, got {:?} for field '{}'",
+            value, key
+        )),
+    }
 }

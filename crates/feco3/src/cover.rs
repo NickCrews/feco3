@@ -26,6 +26,7 @@ pub fn parse_cover_line<'a>(
     let record = LiteralLineParser.parse_line(fec_version, &mut line.into_iter())?;
     cover.form_type = record.line_code.clone();
     cover.filer_committee_id = get(&record, "filer_committee_id_number")?;
+    log::debug!("parsed cover line {:?}", cover);
     Ok(cover)
 }
 
