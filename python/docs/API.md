@@ -3,4 +3,4 @@
 ::: feco3.FecFile
 ::: feco3.Header
 ::: feco3.Cover
-::: feco3.PyarrowProcessor
+::: feco3.PyarrowBatcher

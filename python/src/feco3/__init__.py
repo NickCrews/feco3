@@ -114,15 +114,22 @@ class FecFile:
 DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
 
 
-class PyarrowProcessor:
+class PyarrowBatcher:
     """
     Iterates an [FecFile][feco3.FecFile] and yields [pyarrow.RecordBatch][]s of itemizations.
     """  # noqa: E501
-    def __init__(self, max_batch_size: int | None = None):
+    def __init__(self, fec_file: FecFile, max_batch_size: int | None = None):
+        self._fec_file = fec_file
         if max_batch_size is None:
             max_batch_size = DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE
         self._wrapped = _feco3.PyarrowProcessor(max_batch_size)
 
-    def next_batch(self, fec_file: FecFile) -> pa.RecordBatch:
+    def __iter__(self) -> PyarrowBatcher:
+        return self
+
+    def __next__(self) -> pa.RecordBatch:
         """Get the next batch of itemizations from the FEC file."""
-        return self._wrapped.next_batch(fec_file._wrapped)
+        batch = self._wrapped.next_batch(self._fec_file._wrapped)
+        if batch is None:
+            raise StopIteration
+        return batch
