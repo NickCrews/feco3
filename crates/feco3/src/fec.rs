@@ -8,10 +8,14 @@ use crate::csv::{CsvReader, Sep};
 use crate::header::{parse_header, Header};
 use crate::Error;
 
-/// A FEC file, the core data structure of this crate.
+/// A FEC file, the low-level core data structure of this crate.
 ///
 /// You create a FecFile from a stream of bytes (e.g. a file, an HTTP stream,
 /// a python callback function, or some other custom source).
+/// Then, you can query the various parts of the file, such as the header,
+/// the cover, or the itemizations.
+///
+/// See https://github.com/NickCrews/feco3/wiki for more info.
 ///
 /// All methods are lazy and streaming, so nothing is read from the source
 /// until you call a method that requires it.

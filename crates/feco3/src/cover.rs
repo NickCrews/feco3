@@ -8,6 +8,8 @@ use crate::schemas::{LineParser, LiteralLineParser};
 use crate::Error;
 
 /// Summary information about the filing.
+///
+/// See https://github.com/NickCrews/feco3/wiki for more info.
 #[derive(Debug, Clone, Default)]
 pub struct Cover {
     /// What form is this .fec file, eg "F3X"
