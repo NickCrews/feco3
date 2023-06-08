@@ -7,8 +7,8 @@ plugins:
   - literate-nav
   - mkdocstrings:
       enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
-      custom_templates: templates
       default_handler: python
+      enable_inventory: true
       handlers:
         python:
           import:
@@ -18,3 +18,8 @@ plugins:
             show_source: false
             separate_signature: true
             show_signature_annotations: true
+            show_root_full_path: false
+            show_root_heading: true
+            merge_init_into_class: true
+            docstring_options:
+              ignore_init_summary: true

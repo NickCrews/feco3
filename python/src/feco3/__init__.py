@@ -15,11 +15,12 @@ if TYPE_CHECKING:
     import pyarrow as pa
 
 __version__ = _version.get_version()
+"""Version string for this package."""
 
 
 @dataclass
 class Header:
-    """The header of an ``FecFile``.
+    """The header of a [FecFile][feco3.FecFile].
 
     Attributes:
         fec_version: The version of the FEC file format.
@@ -40,7 +41,7 @@ class Header:
 
 @dataclass
 class Cover:
-    """The Cover Line of an ``FecFile``.
+    """The Cover Line of an [FecFile][feco3.FecFile].
 
     Attributes:
         form_type: The form type of the filing, eg. "F3"
@@ -52,16 +53,7 @@ class Cover:
 
 
 class FecFile:
-    """An FEC file.
-
-    Attributes:
-        header: The header of the FEC file.
-            The first time this is accessed, the FEC file will be read and parsed as
-            far as needed.
-        cover: The cover of the FEC file.
-            The first time this is accessed, the FEC file will be read and parsed as
-            far as needed.
-    """
+    """An FEC file."""
 
     def __init__(self, src: str | os.PathLike) -> None:
         """Create a new FecFile.
@@ -76,6 +68,11 @@ class FecFile:
 
     @cached_property
     def header(self) -> Header:
+        """The [Header][feco3.Header] of the FEC file.
+
+        The first time this is accessed, the FEC file will be read and parsed as
+        far as needed. Subsequent accesses will return the same object.
+        """
         h = self._wrapped.header
         return Header(
             fec_version=h.fec_version,
@@ -87,6 +84,11 @@ class FecFile:
 
     @cached_property
     def cover(self) -> Cover:
+        """The [Cover][feco3.Cover] of the FEC file.
+
+        The first time this is accessed, the FEC file will be read and parsed as
+        far as needed. Subsequent accesses will return the same object.
+        """
         c = self._wrapped.cover
         return Cover(
             form_type=c.form_type,
@@ -114,8 +116,8 @@ DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
 
 class PyarrowProcessor:
     """
-    Iterates an [feco3.FecFile][] and yields [pyarrow.RecordBatch][]s of itemizations.
-    """
+    Iterates an [FecFile][feco3.FecFile] and yields [pyarrow.RecordBatch][]s of itemizations.
+    """  # noqa: E501
     def __init__(self, max_batch_size: int | None = None):
         if max_batch_size is None:
             max_batch_size = DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE
