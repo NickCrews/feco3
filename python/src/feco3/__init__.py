@@ -32,6 +32,7 @@ class Header:
         report_number: If this .fec file is an amendment to a previous filing,
             which number amendement this is (1, 2, 3 etc)
     """
+
     fec_version: str
     software_name: str
     software_version: str | None
@@ -48,6 +49,7 @@ class Cover:
         filer_committee_id: The FEC-assigned ID of the committee that filed the report,
             eg "C00618371"
     """
+
     form_type: str
     filer_committee_id: str
 
@@ -118,6 +120,7 @@ class PyarrowBatcher:
     """
     Iterates an [FecFile][feco3.FecFile] and yields [pyarrow.RecordBatch][]s of itemizations.
     """  # noqa: E501
+
     def __init__(self, fec_file: FecFile, max_batch_size: int | None = None):
         self._fec_file = fec_file
         if max_batch_size is None:
