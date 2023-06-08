@@ -33,7 +33,10 @@ pub struct Header {
     /// The rest of the header fields may be missing,
     /// depending on the version of the FEC file.
     pub software_version: Option<String>,
+    /// If this is an amendment, the FEC Report ID assigned to the original.
     pub report_id: Option<String>,
+    /// If this is an amendment, the number within the chain of amendments.
+    /// Starts at 1 (or 2, I need to check), and counts up from there.
     pub report_number: Option<String>,
 }
 
