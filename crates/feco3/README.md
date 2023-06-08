@@ -9,6 +9,8 @@ You could add a bindings for other languages if you wanted,
 or you could customize the parsing at the rust level, for example
 adding a new input reader or output writer.
 
+Documentation is available at [docs.rs/feco3](https://docs.rs/feco3).
+
 ## Rust Usage
 
 Add this to your `Cargo.toml`:
