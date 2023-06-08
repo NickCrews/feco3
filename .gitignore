@@ -3,6 +3,8 @@ scripts/fech-sources
 
 **/tests/out
 
+**/.pdm-python
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 .pytest_cache/
