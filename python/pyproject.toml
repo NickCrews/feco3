@@ -54,6 +54,7 @@ doc = [
 # inspired by
 # https://github.com/apache/incubator-opendal/blob/main/bindings/python/pyproject.toml
 [tool.maturin]
+python-source = "src"
 module-name = "feco3._feco3"
 manifest-path = "../crates/feco3_python/Cargo.toml"
 features = ["pyo3/extension-module"]
