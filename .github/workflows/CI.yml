@@ -9,7 +9,6 @@ on:
   push:
     branches:
       - main
-      - master
     tags:
       - "*"
   pull_request:
@@ -121,3 +120,30 @@ jobs:
           packages-dir: wheels/
           verbose: true
           print-hash: true
+
+  build-publish-docs:
+    # From https://squidfunk.github.io/mkdocs-material/publishing-your-site/
+    name: Build and publish python docs to GitHub Pages
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [linux, windows, macos, sdist]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+      - uses: actions/cache@v3
+        with:
+          key: mkdocs-material-${{ env.cache_id }}
+          path: .cache
+          restore-keys: |
+            mkdocs-material-
+      - name: install pdm, setup environment
+        run: |
+          pip install pdm
+          pdm install -dG docs
+      - name: Build and publish docs
+        run: pdm run mkdocs gh-deploy --force
