@@ -1,3 +1,7 @@
+//! Single itemization records from an .fec file.
+//!
+//! See https://github.com/NickCrews/feco3/wiki for more
+
 use std::fmt;
 use std::hash::Hash;
 
@@ -95,9 +99,12 @@ pub struct FieldSchema {
 }
 
 /// A parsed line of a .FEC file.
+///
+/// See https://github.com/NickCrews/feco3/wiki/.fec-File-Format for more.
 #[derive(Debug, Clone)]
 pub struct Record {
-    pub line_code: String,
+    /// The record type code that begins the line in the .fec file, eg "SA11"
+    pub record_type: String,
     pub schema: RecordSchema,
     /// May contain fewer or more values than the schema expects.
     pub values: Vec<Value>,
