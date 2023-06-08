@@ -6,6 +6,7 @@ Still in alpha.
 
 ## Documentation
 
+- [Python docs, if you want to use the Python API](https://nickcrews.github.io/feco3/)
 - [Rust docs, if you want to write to the Rust API](https://docs.rs/feco3)
 - [.fec file format](https://github.com/NickCrews/feco3/wiki/.fec-File-Format)
 
