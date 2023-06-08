@@ -10,11 +10,11 @@ use arrow::{
 use std::sync::Arc;
 
 use crate::schemas::{CoercingLineParser, LineParser};
+use crate::{record::Record, Error, FecFile};
 use crate::{
     record::{FieldSchema, RecordSchema, Value, ValueType},
     writers::base::RecordWriter,
 };
-use crate::{Error, FecFile, Record};
 
 use super::base::{MultiRecordWriter, RecordWriterFactory};
 

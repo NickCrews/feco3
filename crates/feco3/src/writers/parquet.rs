@@ -1,6 +1,7 @@
 use parquet::{arrow::ArrowWriter, file::properties::WriterProperties};
 use std::{fs::File, path::PathBuf, sync::Arc};
 
+use crate::record::Record;
 use crate::schemas::{CoercingLineParser, LineParser};
 use crate::{record::RecordSchema, writers::base::RecordWriter};
 use crate::{Error, FecFile};
@@ -41,7 +42,7 @@ impl ParquetWriter {
 }
 
 impl RecordWriter for ParquetWriter {
-    fn write_record(&mut self, record: &crate::Record) -> std::io::Result<()> {
+    fn write_record(&mut self, record: &Record) -> std::io::Result<()> {
         self.batcher.write_record(record)?;
         if self.batcher.len() < self.batch_size {
             return self.write_batch();
