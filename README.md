@@ -4,6 +4,11 @@ A .FEC file parser in rust, with python bindings
 
 Still in alpha.
 
+## Documentation
+
+- [Rust docs, if you want to write to the Rust API](https://docs.rs/feco3)
+- [.fec file format](https://github.com/NickCrews/feco3/wiki/.fec-File-Format)
+
 ## Related projects
 
 Please open an issue or PR if you'd like to add or edit this list.
@@ -22,14 +27,3 @@ Please open an issue or PR if you'd like to add or edit this list.
   Old, unmaintained python parser
 - [fec2json](https://github.com/newsdev/fec2json)
   Not complete parser written in python
-
-## Bibliography
-
-Parsing FEC files is an obscure, poorly documented task.
-
-The FEC publishes technical documentation for the files.
-
-1. Go to https://www.fec.gov/data/browse-data/?tab=bulk-data
-2. Expand the "Electronically filed reports (.fec files)" section.
-3. Click the download link.
-4. Do the same for the "Paper filed reports (.fec files)" section.
