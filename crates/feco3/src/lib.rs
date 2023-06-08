@@ -30,7 +30,6 @@ pub use crate::cover::Cover;
 pub use crate::fec::FecFile;
 pub use crate::fec::LineIter;
 pub use crate::header::Header;
-pub use crate::record::Record;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
