@@ -13,6 +13,7 @@ plugins:
         python:
           import:
             - https://docs.python.org/3/objects.inv
+            - https://arrow.apache.org/docs/objects.inv
           options:
             show_source: false
             separate_signature: true
