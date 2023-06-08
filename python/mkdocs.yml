@@ -1,0 +1,19 @@
+site_name: feco3
+repo_url: https://github.com/NickCrews/feco3
+theme:
+  name: material
+plugins:
+  - search
+  - literate-nav
+  - mkdocstrings:
+      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      custom_templates: templates
+      default_handler: python
+      handlers:
+        python:
+          import:
+            - https://docs.python.org/3/objects.inv
+          options:
+            show_source: false
+            separate_signature: true
+            show_signature_annotations: true

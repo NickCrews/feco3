@@ -37,6 +37,20 @@ Repository = "https://github.com/NickCrews/feco3"
 [project.optional-dependencies]
 arrow = ["pyarrow"]
 
+[tool.pdm.dev-dependencies]
+lint = [
+    "black",
+    "ruff",
+]
+test = [
+  "pytest",
+]
+doc = [
+  "mkdocs-material",
+  "mkdocstrings[python]",
+  "mkdocs-literate-nav",
+]
+
 # inspired by
 # https://github.com/apache/incubator-opendal/blob/main/bindings/python/pyproject.toml
 [tool.maturin]
