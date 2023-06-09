@@ -26,7 +26,7 @@ pub fn parse_cover_line<'a>(
     let line = line.collect::<Vec<&String>>();
     log::debug!("parsing cover line {} {:?}", fec_version, line);
     let record = LiteralLineParser.parse_line(fec_version, &mut line.into_iter())?;
-    cover.form_type = record.record_type.clone();
+    cover.form_type = record.record_code.clone();
     cover.filer_committee_id = get(&record, "filer_committee_id_number")?;
     log::debug!("parsed cover line {:?}", cover);
     Ok(cover)

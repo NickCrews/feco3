@@ -153,7 +153,7 @@ impl RecordBatchProcessor {
             writer.write_record(&record)?;
             if writer.len() >= self.max_batch_size {
                 return Ok(Some(ItemizationBatch {
-                    record_code: record.record_type.clone(),
+                    record_code: record.record_code.clone(),
                     record_batch: writer.build_batch(),
                 }));
             }

@@ -24,11 +24,11 @@ pub trait LineParser<'a> {
         fec_version: &str,
         line: &mut impl Iterator<Item = &'a String>,
     ) -> Result<Record, Error> {
-        let (record_type, line) = get_record_type_code(line)?;
-        let schema: &RecordSchema = lookup_schema(fec_version, record_type)?;
+        let (record_code, line) = get_record_code(line)?;
+        let schema: &RecordSchema = lookup_schema(fec_version, record_code)?;
         let values = self.parse_values(schema, line)?;
         Ok(Record {
-            record_type: record_type.to_string(),
+            record_code: record_code.to_string(),
             schema: schema.clone(),
             values,
         })
@@ -71,14 +71,14 @@ impl<'a> LineParser<'a> for LiteralLineParser {
 }
 
 /// The first value in each line is the record type code.
-fn get_record_type_code<'a, T>(mut line: T) -> Result<(&'a str, T), Error>
+fn get_record_code<'a, T>(mut line: T) -> Result<(&'a str, T), Error>
 where
     T: Iterator<Item = &'a String>,
 {
-    let record_type = line
+    let record_code = line
         .next()
         .ok_or(Error::RecordParseError("No form name".to_string()))?;
-    Ok((record_type, line))
+    Ok((record_code, line))
 }
 
 pub struct CoercingLineParser;

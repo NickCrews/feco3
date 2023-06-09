@@ -104,7 +104,7 @@ pub struct FieldSchema {
 #[derive(Debug, Clone)]
 pub struct Record {
     /// The record type code that begins the line in the .fec file, eg "SA11"
-    pub record_type: String,
+    pub record_code: String,
     pub schema: RecordSchema,
     /// May contain fewer or more values than the schema expects.
     pub values: Vec<Value>,
