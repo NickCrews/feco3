@@ -125,7 +125,7 @@ class PyarrowBatcher:
         self._fec_file = fec_file
         if max_batch_size is None:
             max_batch_size = DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE
-        self._wrapped = _feco3.PyarrowProcessor(max_batch_size)
+        self._wrapped = _feco3.PyarrowBatcher(max_batch_size)
 
     def __iter__(self) -> PyarrowBatcher:
         return self
