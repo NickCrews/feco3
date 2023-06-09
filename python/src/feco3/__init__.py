@@ -1,8 +1,8 @@
 """FECo3: Python bindings to a .fec file parser written in Rust."""
 
 from __future__ import annotations
-from dataclasses import dataclass
 from functools import cached_property
+from typing import NamedTuple
 
 import os
 from pathlib import Path
@@ -19,8 +19,7 @@ __version__ = _version.get_version()
 """Version string for this package."""
 
 
-@dataclass
-class Header:
+class Header(NamedTuple):
     """The header of a [FecFile][feco3.FecFile].
 
     Attributes:
@@ -41,8 +40,7 @@ class Header:
     report_number: str | None
 
 
-@dataclass
-class Cover:
+class Cover(NamedTuple):
     """The Cover Line of an [FecFile][feco3.FecFile].
 
     Attributes:
