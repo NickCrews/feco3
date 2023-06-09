@@ -124,9 +124,12 @@ impl PyarrowBatcher {
     }
 
     // Gets the next pyarrow record batch or None if there are no more records.
-    fn next_batch(&mut self, fec_file: &mut FecFile) -> PyResult<Option<PyArrowType<RecordBatch>>> {
+    fn next_batch(
+        &mut self,
+        fec_file: &mut FecFile,
+    ) -> PyResult<Option<(String, PyArrowType<RecordBatch>)>> {
         match self.0.next_batch(&mut fec_file.0) {
-            Ok(Some(batch)) => Ok(Some(batch.into())),
+            Ok(Some(batch)) => Ok(Some((batch.record_code, batch.record_batch.into()))),
             Ok(None) => Ok(None),
             Err(e) => Err(to_py_err(e)),
         }

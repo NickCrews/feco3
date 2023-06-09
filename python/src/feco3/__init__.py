@@ -122,9 +122,21 @@ class FecFile:
 DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
 
 
+class ItemizationBatch(NamedTuple):
+    """A batch of itemizations.
+
+    Attributes:
+        code: The code of the itemization type, eg. "SA11AI"
+        records: A [pyarrow.RecordBatch][pyarrow.RecordBatch] of itemizations.
+    """
+
+    code: str
+    records: pa.RecordBatch
+
+
 class PyarrowBatcher:
     """
-    Iterates an [FecFile][feco3.FecFile] and yields [pyarrow.RecordBatch][]s of itemizations.
+    Iterates an [FecFile][feco3.FecFile] and yields [ItemizationBatch][feco3.ItemizationBatch]s of itemizations.
     """  # noqa: E501
 
     def __init__(self, fec_file: FecFile, max_batch_size: int | None = None):
@@ -136,9 +148,10 @@ class PyarrowBatcher:
     def __iter__(self) -> PyarrowBatcher:
         return self
 
-    def __next__(self) -> pa.RecordBatch:
+    def __next__(self) -> ItemizationBatch:
         """Get the next batch of itemizations from the FEC file."""
-        batch = self._wrapped.next_batch(self._fec_file._wrapped)
-        if batch is None:
+        pair = self._wrapped.next_batch(self._fec_file._wrapped)
+        if pair is None:
             raise StopIteration
-        return batch
+        code, batch = pair
+        return ItemizationBatch(code, batch)

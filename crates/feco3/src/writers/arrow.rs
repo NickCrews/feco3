@@ -117,6 +117,12 @@ impl RecordWriterFactory for RecordBatchWriterFactory {
     }
 }
 
+/// A group of itemization records that are all of the same type
+pub struct ItemizationBatch {
+    pub record_code: String,
+    pub record_batch: RecordBatch,
+}
+
 pub struct RecordBatchProcessor {
     multi_writer: MultiRecordWriter<RecordBatchWriterFactory>,
     max_batch_size: usize,
@@ -131,7 +137,7 @@ impl RecordBatchProcessor {
         }
     }
 
-    pub fn next_batch(&mut self, fec: &mut FecFile) -> Result<Option<RecordBatch>, Error> {
+    pub fn next_batch(&mut self, fec: &mut FecFile) -> Result<Option<ItemizationBatch>, Error> {
         let mut parser = CoercingLineParser;
         let fec_version = fec.get_header()?.fec_version.clone();
         loop {
@@ -142,19 +148,25 @@ impl RecordBatchProcessor {
                     return Ok(self.get_leftover_batch());
                 }
             };
-            let record = parser.parse_line(&fec_version, &mut line.iter())?;
+            let record: Record = parser.parse_line(&fec_version, &mut line.iter())?;
             let writer = self.multi_writer.get_writer(&record.schema)?;
             writer.write_record(&record)?;
             if writer.len() >= self.max_batch_size {
-                return Ok(Some(writer.build_batch()));
+                return Ok(Some(ItemizationBatch {
+                    record_code: record.record_type.clone(),
+                    record_batch: writer.build_batch(),
+                }));
             }
         }
     }
 
-    fn get_leftover_batch(&mut self) -> Option<RecordBatch> {
-        for writer in self.multi_writer.writers.values_mut() {
+    fn get_leftover_batch(&mut self) -> Option<ItemizationBatch> {
+        for (record_schema, writer) in self.multi_writer.writers.iter_mut() {
             if writer.len() > 0 {
-                return Some(writer.build_batch());
+                return Some(ItemizationBatch {
+                    record_code: record_schema.code.clone(),
+                    record_batch: writer.build_batch(),
+                });
             }
         }
         return None;
