@@ -104,14 +104,15 @@ impl ParquetProcessor {
 }
 
 #[pyclass]
-struct PyarrowProcessor(feco3::writers::arrow::RecordBatchProcessor);
+struct PyarrowBatcher(feco3::writers::arrow::RecordBatchProcessor);
 
 #[pymethods]
-impl PyarrowProcessor {
+impl PyarrowBatcher {
     #[new]
-    fn new(batch_size: usize) -> Self {
-        let processor = feco3::writers::arrow::RecordBatchProcessor::new(batch_size);
-        Self(processor)
+    fn new(max_batch_size: usize) -> Self {
+        Self(feco3::writers::arrow::RecordBatchProcessor::new(
+            max_batch_size,
+        ))
     }
 
     // Gets the next pyarrow record batch or None if there are no more records.
@@ -132,7 +133,7 @@ fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
     m.add_class::<FecFile>()?;
     m.add_class::<ParquetProcessor>()?;
-    m.add_class::<PyarrowProcessor>()?;
+    m.add_class::<PyarrowBatcher>()?;
     Ok(())
 }
 
