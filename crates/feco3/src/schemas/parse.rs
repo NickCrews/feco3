@@ -64,7 +64,7 @@ impl<'a> LineParser<'a> for LiteralLineParser {
         }
         let extra_schema_fields = field_schemas.count();
         if extra_schema_fields > 0 {
-            log::error!("extra_schema_fields: {}", extra_schema_fields);
+            log::error!("warning: extra_schema_fields: {}", extra_schema_fields);
         }
         Ok(values)
     }
