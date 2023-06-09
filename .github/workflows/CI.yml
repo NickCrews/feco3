@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: wheels
-          path: dist
+          path: python/dist
 
   windows:
     name: Build wheels for Windows
@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: wheels
-          path: dist
+          path: python/dist
 
   macos:
     name: Build wheels for MacOS
@@ -95,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: wheels
-          path: dist
+          path: python/dist
 
   sdist:
     name: Build python sdist
@@ -112,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: wheels
-          path: dist
+          path: python/dist
 
   release:
     name: Release to PyPI and crates.io
