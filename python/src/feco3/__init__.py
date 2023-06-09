@@ -66,7 +66,9 @@ class FecFile:
                 If a string that starts with "http://" or "https://", it will be
                 treated as a URL. Otherwise, it will be treated as a path.
         """
-        if isinstance(src, str) and (src.startswith("http://") or src.startswith("https://")):
+        if isinstance(src, str) and (
+            src.startswith("http://") or src.startswith("https://")
+        ):
             self._src = src
             self._wrapped = _feco3.FecFile.from_https(self._src)
         else:
@@ -117,7 +119,6 @@ class FecFile:
 
 # This is what rust parquet uses as a batch size
 # https://docs.rs/parquet/40.0.0/src/parquet/file/properties.rs.html#83
-# DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
 DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE = 1024 * 1024
 
 
