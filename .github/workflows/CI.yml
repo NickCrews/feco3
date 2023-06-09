@@ -125,14 +125,18 @@ jobs:
           verbose: true
           print-hash: true
 
-  build-publish-docs:
+  lint_and_docs:
     # From https://squidfunk.github.io/mkdocs-material/publishing-your-site/
-    name: Build and publish python docs to GitHub Pages
+    name: Lint python, build docs and publish to gh-pages
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     needs: [linux, windows, macos, sdist]
     permissions:
       contents: write
+    defaults:
+      run:
+        working-directory:
+          python
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -148,6 +152,10 @@ jobs:
       - name: install pdm, setup environment
         run: |
           pip install pdm
-          pdm install -dG docs
+          pdm install -d
       - name: Build and publish docs
         run: pdm run mkdocs gh-deploy --force
+      - name: Lint
+        run: |
+          pdm run ruff .
+          pdm run black --check .
