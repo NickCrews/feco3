@@ -385,8 +385,8 @@ summary = "Backport of pathlib-compatible object wrapper for zip files"
 [metadata]
 lock_version = "4.2"
 cross_platform = true
-groups = ["default", "doc", "lint", "test"]
-content_hash = "sha256:b92c6bcde1aee648dd232ab3baf503670606b287b11976a7e2224a44a508fea6"
+groups = ["default", "docs", "lint", "test"]
+content_hash = "sha256:c455cfe2d4703d8ad88cd023c24bae4f06f3c0d06200a80f019783ccd40619b5"
 
 [metadata.files]
 "black 23.3.0" = [
