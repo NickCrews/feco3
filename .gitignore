@@ -1,5 +1,6 @@
 /target
 scripts/fech-sources
+**/site
 
 **/tests/out
 
