@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   linux:
+    name: Build wheels for Linux
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -43,6 +44,7 @@ jobs:
           path: dist
 
   windows:
+    name: Build wheels for Windows
     runs-on: windows-latest
     strategy:
       matrix:
@@ -67,6 +69,7 @@ jobs:
           path: dist
 
   macos:
+    name: Build wheels for MacOS
     runs-on: macos-latest
     strategy:
       matrix:
@@ -90,6 +93,7 @@ jobs:
           path: dist
 
   sdist:
+    name: Build python sdist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
