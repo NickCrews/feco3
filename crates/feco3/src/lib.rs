@@ -52,4 +52,8 @@ pub enum Error {
     #[allow(missing_docs)]
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+
+    #[allow(missing_docs)]
+    #[error("Http error: {0}")]
+    HttpError(String),
 }

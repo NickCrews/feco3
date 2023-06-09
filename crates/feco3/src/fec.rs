@@ -46,6 +46,19 @@ impl FecFile {
         Ok(Self::from_reader(Box::new(file)))
     }
 
+    pub fn from_https(url: &str) -> Result<Self, Error> {
+        log::debug!("fetching {}", url);
+        let resp = ureq::get(url)
+            .set("User-Agent", "Mozilla/5.0")
+            .call()
+            .map_err(|e| Error::HttpError(e.to_string()))?;
+        if resp.status() >= 400 {
+            return Err(Error::HttpError(resp.status_text().to_string()));
+        }
+        let reader = resp.into_reader();
+        Ok(Self::from_reader(reader))
+    }
+
     pub fn get_header(&mut self) -> Result<&Header, Error> {
         self.parse_header()?;
         Ok(self.header.as_ref().expect("header should be set"))

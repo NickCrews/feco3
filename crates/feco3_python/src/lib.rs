@@ -66,6 +66,14 @@ impl FecFile {
         }
     }
 
+    #[staticmethod]
+    fn from_https(url: &str) -> PyResult<Self> {
+        match feco3::FecFile::from_https(url) {
+            Ok(fec_file) => Ok(FecFile(fec_file)),
+            Err(e) => Err(to_py_err(e)),
+        }
+    }
+
     #[getter]
     fn header(&mut self) -> PyResult<Header> {
         match self.0.get_header() {
@@ -147,5 +155,6 @@ fn to_py_err(e: feco3::Error) -> PyErr {
             e, f
         )),
         feco3::Error::CoverParseError(e) => PyErr::new::<PyValueError, _>(e.to_string()),
+        feco3::Error::HttpError(e) => PyErr::new::<PyIOError, _>(e.to_string()),
     }
 }

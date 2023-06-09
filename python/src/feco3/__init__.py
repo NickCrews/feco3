@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import cached_property
 
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 
@@ -63,10 +64,16 @@ class FecFile:
         This doesn't do any reading or parsing until you access one of the members.
 
         Args:
-            src: The path to the FEC file to parse.
+            src: A path or a URL to an FEC file.
+                If a string that starts with "http://" or "https://", it will be
+                treated as a URL. Otherwise, it will be treated as a path.
         """
-        self._src = src
-        self._wrapped = _feco3.FecFile.from_path(src)
+        if isinstance(src, str) and (src.startswith("http://") or src.startswith("https://")):
+            self._src = src
+            self._wrapped = _feco3.FecFile.from_https(self._src)
+        else:
+            self._src = Path(src)
+            self._wrapped = _feco3.FecFile.from_path(self._src)
 
     @cached_property
     def header(self) -> Header:
