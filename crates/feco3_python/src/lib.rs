@@ -112,6 +112,24 @@ impl ParquetProcessor {
 }
 
 #[pyclass]
+struct CsvProcessor(feco3::writers::csv::CSVProcessor);
+
+#[pymethods]
+impl CsvProcessor {
+    #[new]
+    fn new(out_dir: PathBuf) -> Self {
+        Self(feco3::writers::csv::CSVProcessor::new(out_dir))
+    }
+
+    fn process(&mut self, fec_file: &mut FecFile) -> PyResult<()> {
+        match self.0.process(&mut fec_file.0) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(to_py_err(e)),
+        }
+    }
+}
+
+#[pyclass]
 struct PyarrowBatcher(feco3::writers::arrow::RecordBatchProcessor);
 
 #[pymethods]
@@ -144,6 +162,7 @@ fn _feco3(_py: Python, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
     m.add_class::<FecFile>()?;
     m.add_class::<ParquetProcessor>()?;
+    m.add_class::<CsvProcessor>()?;
     m.add_class::<PyarrowBatcher>()?;
     Ok(())
 }

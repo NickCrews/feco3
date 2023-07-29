@@ -1,5 +1,5 @@
-import pyarrow as pa
 import feco3
+import pyarrow as pa
 
 # ruff: noqa: E501
 
@@ -8,6 +8,12 @@ src = "https://docquery.fec.gov/dcdev/posted/1002596.fec"
 # src = "path/to/file.fec"
 # src = pathlib.Path("path/to/file.fec")
 
+# The straightforward way is to just parse to a directory of files,
+# one file for each itemization type, eg "csvs/SA11AI.csv", etc
+feco3.FecFile(src).to_csvs("csvs/")
+feco3.FecFile(src).to_parquets("parquets/")
+
+# Or, you can look at the file at a lower level.
 # This doesn't actually read or parse any data yet
 fec = feco3.FecFile(src)
 print(fec)

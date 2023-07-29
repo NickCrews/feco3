@@ -1,16 +1,13 @@
 """FECo3: Python bindings to a .fec file parser written in Rust."""
 
 from __future__ import annotations
-from functools import cached_property
-from typing import NamedTuple
 
 import os
+from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
-
-from . import _version
-from . import _feco3
+from . import _feco3, _version
 
 if TYPE_CHECKING:
     import pyarrow as pa
@@ -104,12 +101,20 @@ class FecFile:
             filer_committee_id=c.filer_committee_id,
         )
 
-    def to_parquet(self, out_dir: str | os.PathLike) -> None:
+    def to_parquets(self, out_dir: str | os.PathLike) -> None:
         """Write all itemizations in this FEC file to parquet files.
 
         There will be one parquet file for each record type, eg. ``sa11.parquet``.
         """
         parser = _feco3.ParquetProcessor(out_dir)
+        parser.process(self._wrapped)
+
+    def to_csvs(self, out_dir: str | os.PathLike) -> None:
+        """Write all itemizations in this FEC file to CSV files.
+
+        There will be one CSV file for each record type, eg. ``sa11.csv``.
+        """
+        parser = _feco3.CsvProcessor(out_dir)
         parser.process(self._wrapped)
 
     def __repr__(self) -> str:
@@ -139,7 +144,14 @@ class PyarrowBatcher:
     Iterates an [FecFile][feco3.FecFile] and yields [ItemizationBatch][feco3.ItemizationBatch]s of itemizations.
     """  # noqa: E501
 
-    def __init__(self, fec_file: FecFile, max_batch_size: int | None = None):
+    def __init__(self, fec_file: FecFile, max_batch_size: int | None = None) -> None:
+        """Create a new PyarrowBatcher.
+
+        Args:
+            fec_file: The [FecFile][feco3.FecFile] to iterate.
+            max_batch_size: The max rows per [pyarrow.RecordBatch][pyarrow.RecordBatch].
+                Defaults to 1024 * 1024, which is what rust parquet uses.
+        """
         self._fec_file = fec_file
         if max_batch_size is None:
             max_batch_size = DEFAULT_PYARROW_RECORD_BATCH_MAX_SIZE

@@ -1,10 +1,21 @@
 # FECo3
 
-A .FEC file parser in rust, with python bindings
+A .FEC file parser in rust, with python bindings. The rust is intended to
+be extendable, easy to maintain, and performant. The python is intended to
+be easy to use, with type hints, possible to extend,
+integrate with the rest of the python data ecosystem.
 
 Still in alpha.
 
-## Example
+## Links
+
+- [Python docs](https://nickcrews.github.io/feco3/), if you want to use the Python API.
+- [Rust docs](https://docs.rs/feco3), if you want to use the Rust API.
+- [.fec file format reference](https://github.com/NickCrews/feco3/wiki/.fec-File-Format)
+  if you want to know more about the .fec file format or are interested in writing
+  your own parser or improving this one.
+
+## Example Python
 
 ```python
 import pyarrow as pa
@@ -13,10 +24,17 @@ import feco3
 # ruff: noqa: E501
 
 # You can supply a URL or a path to a file.
+# Possibly in the future we'll support reading from a file-like object.
 src = "https://docquery.fec.gov/dcdev/posted/1002596.fec"
 # src = "path/to/file.fec"
 # src = pathlib.Path("path/to/file.fec")
 
+# The straightforward way is to just parse to a directory of files,
+# one file for each itemization type, eg "csvs/SA11AI.csv", etc
+feco3.FecFile(src).to_csvs("csvs/")
+feco3.FecFile(src).to_parquets("parquets/")
+
+# Or, you can look at the file at a lower level.
 # This doesn't actually read or parse any data yet
 fec = feco3.FecFile(src)
 print(fec)
@@ -63,13 +81,7 @@ for batch in batcher:
 
 ```
 
-## Documentation
 
-- [Python docs](https://nickcrews.github.io/feco3/), if you want to use the Python API
-- [Rust docs](https://docs.rs/feco3), if you want to write to the Rust API
-- [.fec file format reference](https://github.com/NickCrews/feco3/wiki/.fec-File-Format)
-  if you want to know more about the .fec file format or are interested in writing
-  your own parser or improving this one.
 
 ## Related projects
 
