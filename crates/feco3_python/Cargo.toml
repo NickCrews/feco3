@@ -1,7 +1,7 @@
 [package]
 name = "feco3_python"
-version = {workspace = true}
-edition = {workspace = true}
+version = { workspace = true }
+edition = { workspace = true }
 
 [lib]
 name = "feco3_python"
@@ -11,4 +11,4 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.18.1", features = ["extension-module"] }
 feco3 = { path = "../feco3" }
 pyo3-log = "0.8.1"
-arrow = { version = "40.0.0", features = ["pyarrow"]}
+arrow = { version = "40.0.0", features = ["pyarrow"] }
