@@ -1,6 +1,7 @@
 # FECo3
 
-A .FEC file parser in rust, with python bindings. The rust is intended to
+A [.FEC](https://www.fec.gov/introduction-campaign-finance/data-tutorials/)
+file parser in rust, with python bindings. The rust is intended to
 be extendable, easy to maintain, and performant. The python is intended to
 be easy to use, with type hints, possible to extend,
 integrate with the rest of the python data ecosystem.
