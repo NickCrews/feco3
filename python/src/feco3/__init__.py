@@ -141,7 +141,7 @@ class ItemizationBatch(NamedTuple):
 
 class PyarrowBatcher:
     """
-    Iterates an [FecFile][feco3.FecFile] and yields [ItemizationBatch][feco3.ItemizationBatch]s of itemizations.
+    Iterates an [FecFile](feco3.FecFile) and yields [ItemizationBatch](feco3.ItemizationBatch)s of itemizations.
     """  # noqa: E501
 
     def __init__(self, fec_file: FecFile, max_batch_size: int | None = None) -> None:
