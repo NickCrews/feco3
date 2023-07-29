@@ -1,4 +1,4 @@
-//! Helpers for converting [Record]s into arrow [RecordBatch]es.
+//! Convert [Record]s into arrow [RecordBatch]es.
 use arrow::array::{
     ArrayBuilder, BooleanBuilder, Date32Builder, Float64Builder, Int64Builder, StringBuilder,
 };

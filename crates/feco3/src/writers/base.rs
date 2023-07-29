@@ -21,7 +21,7 @@ pub trait RecordWriterFactory: Send {
     fn make_writer(&mut self, schema: &RecordSchema) -> std::io::Result<Self::Writer>;
 }
 
-/// Creates [RecordWriter]s that write to a filea.
+/// Creates [RecordWriter]s that write to a file.
 pub trait FileRecordWriterFactory: Send {
     type Writer: RecordWriter;
     fn file_name(&self, form_name: String) -> String;

@@ -9,8 +9,8 @@
 //! streams, or a custom source.
 //!
 //! FECo3 includes a framework for writing the parsed data. Currently,
-//! the only supported output format is CSV, but the framework is designed
-//! to be extensible to other formats.
+//! writing to a directory of .csvs or .parquet files are built in,
+//! but the framework is designed to be extensible to other formats.
 //!
 //! There are bindings for python available
 //! [on the repo](https://github.com/NickCrews/feco3).
@@ -31,6 +31,7 @@ pub use crate::fec::FecFile;
 pub use crate::fec::LineIter;
 pub use crate::header::Header;
 
+/// The error type for this crate.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[allow(missing_docs)]

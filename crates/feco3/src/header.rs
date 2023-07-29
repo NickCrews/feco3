@@ -18,9 +18,11 @@ use std::result::Result;
 
 use crate::schemas::LiteralLineParser;
 
-/// The header of a FEC file.
+/// The header of a FecFile.
 ///
-/// See https://github.com/NickCrews/feco3/wiki for more info.
+/// See
+/// [https://github.com/NickCrews/feco3/wiki](https://github.com/NickCrews/feco3/wiki)
+/// for more info.
 ///
 /// There might be other bits of information available,
 /// but currently we only parse this subset.

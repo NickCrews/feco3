@@ -66,11 +66,17 @@ impl FileRecordWriterFactory for CSVFileWriterFactory {
     }
 }
 
+/// Writes forms to a directory of CSV files.
+///
+/// Each form type gets its own file. If the form type contains a "/"
+/// (which would result in a subdirectory), it is replaced with a "-".
+/// For example, "SC/10" would be written to "SC-10.csv".
 pub struct CSVProcessor {
     multi_writer: MultiRecordWriter<MultiFileRecordWriterFactory<CSVFileWriterFactory>>,
 }
 
 impl CSVProcessor {
+    /// Create a new CSVProcessor that writes to the given directory.
     pub fn new(out_dir: PathBuf) -> Self {
         let factory = CSVFileWriterFactory;
         let f2 = MultiFileRecordWriterFactory::new(out_dir, factory);
@@ -79,6 +85,7 @@ impl CSVProcessor {
     }
 
     // TODO: factor this out with ParquetProcessor.process()
+    /// Process the given FEC file, writing the results to the output directory.
     pub fn process(&mut self, fec: &mut FecFile) -> Result<(), Error> {
         let fec_version = fec.get_header()?.fec_version.clone();
         let mut parser = CoercingLineParser;

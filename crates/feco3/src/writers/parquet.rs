@@ -77,12 +77,20 @@ impl FileRecordWriterFactory for ParquetWriterFactory {
     }
 }
 
-/// Processes an entire FEC file, writing each form to a separate file.
+/// Writes forms to a directory of CSV files.
+///
+/// Each form type gets its own file. If the form type contains a "/"
+/// (which would result in a subdirectory), it is replaced with a "-".
+/// For example, "SC/10" would be written to "SC-10.csv".
 pub struct ParquetProcessor {
     writer: MultiRecordWriter<MultiFileRecordWriterFactory<ParquetWriterFactory>>,
 }
 
 impl ParquetProcessor {
+    /// Create a new CSVProcessor that writes to the given directory.
+    ///
+    /// `writer_props` can be used to configure the parquet writer used for
+    /// each file. If None, the default writer properties are used.
     pub fn new(out_dir: PathBuf, writer_props: Option<WriterProperties>) -> Self {
         let factory = ParquetWriterFactory {
             props: writer_props,
