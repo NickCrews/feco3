@@ -6,7 +6,7 @@ build-backend = "maturin"
 name = "feco3"
 # TODO make this dynamic
 # KEEP IN SYNC WITH ../Cargo.toml
-version = "0.4.1"
+version = "0.5.0"
 description = "A Rust-backed Python library for parsing .fec files."
 requires-python = ">=3.7"
 readme = "README.md"

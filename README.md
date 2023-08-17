@@ -6,7 +6,8 @@ be extendable, easy to maintain, and performant. The python is intended to
 be easy to use, with type hints, possible to extend,
 integrate with the rest of the python data ecosystem.
 
-Still in alpha.
+Still in alpha. Breaking changes will happen all the time. Please open an issue
+with feedback though, I'd love to learn what you would want to use this for.
 
 ## Links
 

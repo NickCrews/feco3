@@ -594,7 +594,7 @@ dependencies = [
 
 [[package]]
 name = "feco3"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "arrow",
  "bytelines",
@@ -614,7 +614,7 @@ dependencies = [
 
 [[package]]
 name = "feco3_python"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "arrow",
  "feco3",
